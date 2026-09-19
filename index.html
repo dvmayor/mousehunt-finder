@@ -316,16 +316,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .segmented {
-    display: inline-flex;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 3px;
-    gap: 2px;
-    flex-wrap: wrap;
-  }
-
   .select-input {
     font-family: var(--font-body);
     font-size: 13.5px;
@@ -341,21 +331,6 @@
 
   .select-input:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .select-input:disabled { opacity: 0.45; pointer-events: none; cursor: default; }
-
-  .segmented button {
-    all: unset;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 999px;
-    color: var(--text-muted);
-  }
-
-  .segmented button.active {
-    background: var(--accent);
-    color: var(--accent-ink);
-  }
 
   .toggle-stack {
     display: flex;
@@ -379,11 +354,6 @@
     height: 17px;
     accent-color: var(--accent);
     cursor: pointer;
-  }
-
-  .segmented.is-disabled {
-    opacity: 0.45;
-    pointer-events: none;
   }
 
   .best-only-toggle.is-disabled {
@@ -683,14 +653,6 @@
         <span id="bonusValue">0%</span>
       </div>
     </div>
-    <div class="control-group">
-      <label class="field-label">Show top</label>
-      <div class="segmented" id="limitSegmented">
-        <button data-limit="10">10</button>
-        <button data-limit="25">25</button>
-        <button data-limit="0" class="active">All</button>
-      </div>
-    </div>
     <div class="control-group" id="mouseSortGroup">
       <label class="field-label" for="mouseSortSelect">Sort by</label>
       <select id="mouseSortSelect" class="select-input">
@@ -750,7 +712,6 @@
   var populations = null, cheeseBaseline = null, mouseGroups = null;
   var selectedMice = [];
   var attractionBonus = 0;
-  var rowLimit = 0;
   var bestOnly = false;
   var excludeSBPlus = false;
   var standardCheeseOnly = false;
@@ -774,7 +735,6 @@
   shareLinkFallback.addEventListener("focus", function () { shareLinkFallback.select(); });
   var bonusRange = document.getElementById("bonusRange");
   var bonusValue = document.getElementById("bonusValue");
-  var limitSegmented = document.getElementById("limitSegmented");
   var mouseSortSelect = document.getElementById("mouseSortSelect");
   var bestOnlyToggle = document.getElementById("bestOnlyToggle");
   var excludeSBPlusToggle = document.getElementById("excludeSBPlusToggle");
@@ -984,15 +944,6 @@
     renderAll();
   });
 
-  limitSegmented.addEventListener("click", function (e) {
-    var btn = e.target.closest("button[data-limit]");
-    if (!btn) return;
-    limitSegmented.querySelectorAll("button").forEach(function (b) { b.classList.remove("active"); });
-    btn.classList.add("active");
-    rowLimit = parseInt(btn.dataset.limit, 10);
-    renderAll();
-    updateShareLinkDisplay();
-  });
 
   bestOnlyToggle.addEventListener("change", function () {
     bestOnly = bestOnlyToggle.checked;
@@ -1026,7 +977,6 @@
     var onAggregate = activeTab === "aggregate";
     bestOnlyToggle.disabled = onAggregate;
     bestOnlyToggle.closest("label").classList.toggle("is-disabled", onAggregate);
-    limitSegmented.classList.toggle("is-disabled", onAggregate || bestOnly);
     // The sort dropdown applies to both tabs, but each tab keeps its own choice.
     mouseSortSelect.value = onAggregate ? aggregateSortMode : mouseSortMode;
   }
@@ -1185,8 +1135,7 @@
   }
 
   function applyLimit(rows) {
-    if (bestOnly) return rows.slice(0, 1);
-    return rowLimit > 0 ? rows.slice(0, rowLimit) : rows;
+    return bestOnly ? rows.slice(0, 1) : rows;
   }
 
   // "Best only" for the combined view shows each mouse's own top pick,
@@ -1329,7 +1278,6 @@
     params.set("sc", standardCheeseOnly ? "1" : "0");
     params.set("ms", SORT_CODE[mouseSortMode] || "i");
     params.set("as", SORT_CODE[aggregateSortMode] || "i");
-    params.set("rl", String(rowLimit));
     params.set("t", activeTab === "aggregate" ? "a" : "b");
     return location.origin + location.pathname + "?" + params.toString();
   }
@@ -1350,7 +1298,6 @@
       standardCheeseOnly: params.get("sc") === "1",
       mouseSortMode: SORT_FROM_CODE[params.get("ms")] || "input",
       aggregateSortMode: SORT_FROM_CODE[params.get("as")] || "input",
-      rowLimit: parseInt(params.get("rl") || "0", 10),
       activeTab: params.get("t") === "a" ? "aggregate" : "bymouse"
     };
   }
@@ -1375,10 +1322,6 @@
     mouseSortMode = state.mouseSortMode;
     aggregateSortMode = state.aggregateSortMode;
     mouseSortSelect.value = activeTab === "aggregate" ? aggregateSortMode : mouseSortMode;
-    rowLimit = state.rowLimit;
-    limitSegmented.querySelectorAll("button").forEach(function (b) {
-      b.classList.toggle("active", parseInt(b.dataset.limit, 10) === rowLimit);
-    });
     activeTab = state.activeTab;
     document.querySelectorAll(".tab-btn").forEach(function (b) {
       b.classList.toggle("active", b.dataset.tab === activeTab);
