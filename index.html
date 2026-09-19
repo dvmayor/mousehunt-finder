@@ -444,6 +444,8 @@
     color: var(--text-muted);
   }
 
+  .detail-line b { color: var(--text); font-weight: 700; }
+
   .contributors {
     font-size: 10.5px;
     color: var(--text-muted);
@@ -829,8 +831,8 @@
 
   function renderRowCard(row, rank, showContributors) {
     var isBest = rank === 1;
-    var detailParts = ["Bait: " + escapeHtml(row.cheese)];
-    if (row.charm !== "-") detailParts.push("Charm: " + escapeHtml(row.charm));
+    var detailParts = ["<b>Bait:</b> " + escapeHtml(row.cheese)];
+    if (row.charm !== "-") detailParts.push("<b>Charm:</b> " + escapeHtml(row.charm));
     if (row.location !== "Event") {
       detailParts.push('<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">CRE ↗</a>');
     }
