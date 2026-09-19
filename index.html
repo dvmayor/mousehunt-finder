@@ -826,7 +826,7 @@
     var firstCheese = row.cheese.indexOf("/") > -1 ? row.cheese.slice(0, row.cheese.indexOf("/")) : row.cheese;
     params += "&cheese=" + encodeURIComponent(firstCheese);
     if (row.charm !== "-") params += "&charm=" + encodeURIComponent(row.charm + " Charm");
-    return "https://tsitu.github.io/MH-Tools/setup.html?" + params;
+    return "https://tsitu.github.io/MH-Tools/cre.html?" + params;
   }
 
   function renderRowCard(row, rank, showContributors) {
