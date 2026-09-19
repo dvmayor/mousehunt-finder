@@ -1,0 +1,924 @@
+<title>Mouse Finder</title>
+<meta name="description" content="Find the best location, cheese, and charm to attract any MouseHunt mouse, ranked by attraction rate.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #FAF6EC;
+    --surface: #FFFFFF;
+    --surface-2: #F1EAD6;
+    --border: #E7DCC0;
+    --text: #2B2013;
+    --text-muted: #8A7A5C;
+    --accent: #C77A1E;
+    --accent-strong: #A6630F;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #F6E4C6;
+    --best: #3E7A46;
+    --best-bg: #E5F1E1;
+    --best-border: #BFDDB6;
+    --danger: #AD4A31;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 2px rgba(43,32,19,0.05), 0 8px 24px rgba(43,32,19,0.07);
+    --font-display: "Baloo 2", ui-rounded, "Segoe UI", sans-serif;
+    --font-body: "Inter", -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16130C;
+      --surface: #211B11;
+      --surface-2: #2A2316;
+      --border: #3B311F;
+      --text: #F2EAD6;
+      --text-muted: #AE9E7E;
+      --accent: #E8A34A;
+      --accent-strong: #F0B968;
+      --accent-ink: #1B1206;
+      --accent-soft: #3A2C15;
+      --best: #7BCB86;
+      --best-bg: #1E3323;
+      --best-border: #33502F;
+      --danger: #E08669;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #16130C;
+    --surface: #211B11;
+    --surface-2: #2A2316;
+    --border: #3B311F;
+    --text: #F2EAD6;
+    --text-muted: #AE9E7E;
+    --accent: #E8A34A;
+    --accent-strong: #F0B968;
+    --accent-ink: #1B1206;
+    --accent-soft: #3A2C15;
+    --best: #7BCB86;
+    --best-bg: #1E3323;
+    --best-border: #33502F;
+    --danger: #E08669;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding-inline: 16px;
+    padding-block: 28px 64px;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; }
+
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+
+  .app-header svg { width: 40px; height: 40px; flex-shrink: 0; }
+
+  .app-header h1 {
+    font-size: 26px;
+    letter-spacing: 0.2px;
+  }
+
+  .app-header p {
+    margin: 2px 0 0;
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+
+  .search-card { position: relative; z-index: 30; margin-bottom: 14px; }
+
+  label.field-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .search-input-wrap { position: relative; }
+
+  #mouseInput {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 16px;
+    padding: 13px 14px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+
+  #mouseInput:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .suggestions {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 40;
+  }
+
+  .suggestions[hidden] { display: none; }
+
+  .suggestion-item {
+    padding: 11px 14px;
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .suggestion-item .sub { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .suggestion-item:hover, .suggestion-item.active {
+    background: var(--accent-soft);
+  }
+
+  .suggestion-empty {
+    padding: 14px;
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-soft);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 8px 6px 14px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .chip .chip-group {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .chip button {
+    all: unset;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .chip button:hover { background: rgba(0,0,0,0.08); color: var(--danger); }
+  .chip button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .control-group { flex: 1 1 200px; min-width: 180px; }
+
+  .control-group .field-label { margin-bottom: 6px; }
+
+  .bonus-row { display: flex; align-items: center; gap: 10px; }
+
+  #bonusRange { flex: 1; accent-color: var(--accent); height: 4px; }
+
+  #bonusValue {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 14px;
+    min-width: 42px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .segmented {
+    display: inline-flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+
+  .segmented button {
+    all: unset;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    color: var(--text-muted);
+  }
+
+  .segmented button.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .best-only-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    padding: 7px 2px;
+  }
+
+  .best-only-toggle input {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .segmented.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin: 22px 0 14px;
+  }
+
+  .tab-btn {
+    all: unset;
+    cursor: pointer;
+    flex: 1;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 11px 10px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+  }
+
+  .tab-btn.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14.5px;
+  }
+
+  .empty-state svg { width: 56px; height: 56px; margin-bottom: 10px; opacity: 0.6; }
+
+  .result-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .result-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .result-card.best {
+    border-color: var(--best-border);
+    background: var(--best-bg);
+  }
+
+  .rank-badge {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .result-card.best .rank-badge {
+    background: var(--best);
+    color: var(--accent-ink);
+  }
+
+  .result-main { flex: 1; min-width: 0; }
+
+  .result-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .location-line {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .best-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: var(--best);
+    color: var(--accent-ink);
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .weighted-ar {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .weighted-ar .raw-ar {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+  .pill {
+    font-size: 12.5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .pill.charm { background: var(--accent-soft); border-color: transparent; }
+
+  .contributors {
+    margin-top: 9px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+
+  .contributors b { color: var(--text); font-weight: 600; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .cre-link {
+    display: inline-block;
+    margin-top: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    text-decoration: none;
+  }
+
+  .cre-link:hover { text-decoration: underline; }
+
+  .mouse-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .mouse-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  .mouse-section-header { margin-bottom: 12px; }
+
+  .mouse-section-header h3 {
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+
+  .mouse-section-header .group-line {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .mouse-section-header .group-line b { color: var(--text); font-weight: 600; }
+
+  .attribution {
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .attribution a { color: var(--text-muted); }
+
+  @media (max-width: 460px) {
+    .app-header h1 { font-size: 22px; }
+    .result-top-row { flex-direction: column; }
+    .weighted-ar { text-align: left; }
+    .weighted-ar .raw-ar { text-align: left; }
+  }
+</style>
+
+<div class="app-header">
+  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M8 30C8 18 17 10 27 10c9 0 15 6 15 13 0 8-7 13-16 13-3.5 0-6-.6-8-1.6L12 37l1.8-6.4C10.2 28.4 8 29.6 8 30Z" fill="var(--accent)"/>
+    <circle cx="33" cy="18" r="2.4" fill="var(--surface)"/>
+    <circle cx="16" cy="24" r="1.6" fill="var(--accent-soft)"/>
+    <circle cx="22" cy="30" r="1.3" fill="var(--accent-soft)"/>
+    <circle cx="28" cy="24" r="1.8" fill="var(--accent-soft)"/>
+  </svg>
+  <div>
+    <h1>Mouse Finder</h1>
+    <p>Search a mouse, see every location ranked by attraction rate.</p>
+  </div>
+</div>
+
+<div class="card search-card">
+  <label class="field-label" for="mouseInput">Add a mouse</label>
+  <div class="search-input-wrap">
+    <input id="mouseInput" type="text" placeholder="Type a mouse name…" autocomplete="off" role="combobox" aria-expanded="false" aria-owns="suggestionsList">
+    <div class="suggestions" id="suggestionsList" hidden></div>
+  </div>
+  <div class="chips" id="chipsRow"></div>
+
+  <div class="controls-row">
+    <div class="control-group">
+      <label class="field-label">Your attraction bonus</label>
+      <div class="bonus-row">
+        <input type="range" id="bonusRange" min="0" max="100" value="0">
+        <span id="bonusValue">0%</span>
+      </div>
+    </div>
+    <div class="control-group">
+      <label class="field-label">Show top</label>
+      <div class="segmented" id="limitSegmented">
+        <button data-limit="10">10</button>
+        <button data-limit="25">25</button>
+        <button data-limit="0" class="active">All</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <label class="field-label">&nbsp;</label>
+      <label class="best-only-toggle">
+        <input type="checkbox" id="bestOnlyToggle">
+        <span>Best only</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="aggregate">Best Locations</button>
+  <button class="tab-btn" data-tab="bymouse">By Mouse</button>
+</div>
+
+<div id="aggregatePanel"></div>
+<div id="bymousePanel" hidden></div>
+
+<div class="attribution">
+  Attraction data sourced from <a href="https://tsitu.github.io/MH-Tools/" target="_blank" rel="noopener">tsitu's MH-Tools</a>,
+  mouse groupings from <a href="https://mhwiki.hitgrab.com" target="_blank" rel="noopener">MHWiki</a>. Not affiliated with HitGrab / MouseHunt.
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var populations = null, cheeseBaseline = null, mouseGroups = null;
+  var selectedMice = [];
+  var attractionBonus = 0;
+  var rowLimit = 0;
+  var bestOnly = false;
+  var activeTab = "aggregate";
+  var activeSuggestionIndex = -1;
+  var currentSuggestions = [];
+
+  var mouseInput = document.getElementById("mouseInput");
+  var suggestionsList = document.getElementById("suggestionsList");
+  var chipsRow = document.getElementById("chipsRow");
+  var bonusRange = document.getElementById("bonusRange");
+  var bonusValue = document.getElementById("bonusValue");
+  var limitSegmented = document.getElementById("limitSegmented");
+  var bestOnlyToggle = document.getElementById("bestOnlyToggle");
+  var aggregatePanel = document.getElementById("aggregatePanel");
+  var bymousePanel = document.getElementById("bymousePanel");
+
+  function safeLocalStorage(action, key, value) {
+    try {
+      if (action === "get") return localStorage.getItem(key);
+      if (action === "set") localStorage.setItem(key, value);
+    } catch (e) { /* private mode / blocked storage */ }
+    return null;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function groupLabelFor(mouseName) {
+    if (!mouseGroups || mouseGroups.mice[mouseName] === undefined) return null;
+    var raw = mouseGroups.groups[mouseGroups.mice[mouseName]];
+    var parts = raw.split("|");
+    return { group: parts[0], subgroup: parts[1] || null };
+  }
+
+  function baselineFor(cheeseKey) {
+    var firstCheese = cheeseKey.indexOf("/") > -1 ? cheeseKey.slice(0, cheeseKey.indexOf("/")) : cheeseKey;
+    var b = cheeseBaseline[firstCheese];
+    return b === undefined ? 1.0 : b;
+  }
+
+  function weightedAR(raw, baseline) {
+    var bonusFrac = attractionBonus / 100;
+    return raw * (baseline + bonusFrac - bonusFrac * baseline);
+  }
+
+  // ---------- Autocomplete ----------
+
+  function renderSuggestions(query) {
+    var q = query.trim().toLowerCase();
+    if (!q) {
+      suggestionsList.hidden = true;
+      currentSuggestions = [];
+      return;
+    }
+    var allNames = Object.keys(populations);
+    var starts = [], includes = [];
+    for (var i = 0; i < allNames.length; i++) {
+      var name = allNames[i];
+      if (selectedMice.indexOf(name) > -1) continue;
+      var lower = name.toLowerCase();
+      if (lower.indexOf(q) === 0) starts.push(name);
+      else if (lower.indexOf(q) > -1) includes.push(name);
+    }
+    starts.sort(); includes.sort();
+    currentSuggestions = starts.concat(includes).slice(0, 8);
+    activeSuggestionIndex = -1;
+
+    if (currentSuggestions.length === 0) {
+      suggestionsList.innerHTML = '<div class="suggestion-empty">No mice match "' + escapeHtml(query) + '"</div>';
+      suggestionsList.hidden = false;
+      return;
+    }
+
+    suggestionsList.innerHTML = currentSuggestions.map(function (name, idx) {
+      var g = groupLabelFor(name);
+      var sub = g ? (g.subgroup ? g.group + " » " + g.subgroup : g.group) : "";
+      return '<div class="suggestion-item" data-idx="' + idx + '" data-name="' + escapeHtml(name) + '">' +
+        '<span>' + escapeHtml(name) + '</span><span class="sub">' + escapeHtml(sub) + '</span></div>';
+    }).join("");
+    suggestionsList.hidden = false;
+  }
+
+  function highlightSuggestion(idx) {
+    var items = suggestionsList.querySelectorAll(".suggestion-item");
+    items.forEach(function (el) { el.classList.remove("active"); });
+    if (idx >= 0 && items[idx]) {
+      items[idx].classList.add("active");
+      items[idx].scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function addMouse(name) {
+    if (!populations[name] || selectedMice.indexOf(name) > -1) return;
+    selectedMice.push(name);
+    mouseInput.value = "";
+    suggestionsList.hidden = true;
+    persistState();
+    renderAll();
+  }
+
+  function removeMouse(name) {
+    selectedMice = selectedMice.filter(function (m) { return m !== name; });
+    persistState();
+    renderAll();
+  }
+
+  mouseInput.addEventListener("input", function () { renderSuggestions(mouseInput.value); });
+
+  mouseInput.addEventListener("keydown", function (e) {
+    if (suggestionsList.hidden) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, currentSuggestions.length - 1);
+      highlightSuggestion(activeSuggestionIndex);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+      highlightSuggestion(activeSuggestionIndex);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      var pick = activeSuggestionIndex > -1 ? currentSuggestions[activeSuggestionIndex] : currentSuggestions[0];
+      if (pick) addMouse(pick);
+    } else if (e.key === "Escape") {
+      suggestionsList.hidden = true;
+    } else if (e.key === "Backspace" && mouseInput.value === "" && selectedMice.length) {
+      removeMouse(selectedMice[selectedMice.length - 1]);
+    }
+  });
+
+  suggestionsList.addEventListener("click", function (e) {
+    var item = e.target.closest(".suggestion-item");
+    if (item && item.dataset.name) addMouse(item.dataset.name);
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".search-input-wrap")) suggestionsList.hidden = true;
+  });
+
+  // ---------- Controls ----------
+
+  bonusRange.addEventListener("input", function () {
+    attractionBonus = parseInt(bonusRange.value, 10);
+    bonusValue.textContent = attractionBonus + "%";
+    persistState();
+    renderAll();
+  });
+
+  limitSegmented.addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-limit]");
+    if (!btn) return;
+    limitSegmented.querySelectorAll("button").forEach(function (b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    rowLimit = parseInt(btn.dataset.limit, 10);
+    renderAll();
+  });
+
+  bestOnlyToggle.addEventListener("change", function () {
+    bestOnly = bestOnlyToggle.checked;
+    limitSegmented.classList.toggle("is-disabled", bestOnly);
+    persistState();
+    renderAll();
+  });
+
+  document.querySelectorAll(".tab-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      activeTab = btn.dataset.tab;
+      aggregatePanel.hidden = activeTab !== "aggregate";
+      bymousePanel.hidden = activeTab !== "bymouse";
+    });
+  });
+
+  // ---------- Computation ----------
+
+  function computeRows(mice) {
+    var rows = {};
+    mice.forEach(function (mouse) {
+      var locs = populations[mouse];
+      if (!locs) return;
+      Object.keys(locs).forEach(function (location) {
+        Object.keys(locs[location]).forEach(function (phase) {
+          Object.keys(locs[location][phase]).forEach(function (cheese) {
+            Object.keys(locs[location][phase][cheese]).forEach(function (charm) {
+              var raw = parseFloat(locs[location][phase][cheese][charm]);
+              var baseline = baselineFor(cheese);
+              var weighted = weightedAR(raw, baseline);
+              var key = [location, phase, cheese, charm].join("~~");
+              if (!rows[key]) rows[key] = { location: location, phase: phase, cheese: cheese, charm: charm, rawSum: 0, weightedSum: 0, contributors: [] };
+              rows[key].rawSum += raw;
+              rows[key].weightedSum += weighted;
+              rows[key].contributors.push({ mouse: mouse, raw: raw });
+            });
+          });
+        });
+      });
+    });
+    return Object.keys(rows).map(function (k) { return rows[k]; }).sort(function (a, b) { return b.weightedSum - a.weightedSum; });
+  }
+
+  function creLink(row) {
+    var params = "location=" + encodeURIComponent(row.location);
+    if (row.phase !== "-") params += "&phase=" + encodeURIComponent(row.phase);
+    var firstCheese = row.cheese.indexOf("/") > -1 ? row.cheese.slice(0, row.cheese.indexOf("/")) : row.cheese;
+    params += "&cheese=" + encodeURIComponent(firstCheese);
+    if (row.charm !== "-") params += "&charm=" + encodeURIComponent(row.charm + " Charm");
+    return "https://tsitu.github.io/MH-Tools/setup.html?" + params;
+  }
+
+  function renderRowCard(row, rank, showContributors) {
+    var isBest = rank === 1;
+    var cheeses = row.cheese.split("/");
+    var contributorsHtml = "";
+    if (showContributors && row.contributors.length > 0) {
+      var sorted = row.contributors.slice().sort(function (a, b) { return b.raw - a.raw; });
+      contributorsHtml = '<div class="contributors">' + sorted.map(function (c) {
+        return escapeHtml(c.mouse) + " <b>" + c.raw.toFixed(2) + "%</b>";
+      }).join("") + "</div>";
+    }
+    return (
+      '<div class="result-card' + (isBest ? " best" : "") + '">' +
+        '<div class="rank-badge">' + rank + "</div>" +
+        '<div class="result-main">' +
+          '<div class="result-top-row">' +
+            '<div class="location-line">' + escapeHtml(row.location) +
+              (row.phase !== "-" ? '<span class="pill" style="margin-left:8px;">' + escapeHtml(row.phase) + "</span>" : "") +
+              (isBest ? '<span class="best-badge">Best</span>' : "") +
+            "</div>" +
+            '<div class="weighted-ar">' + row.weightedSum.toFixed(2) + "%" +
+              (row.weightedSum.toFixed(2) !== row.rawSum.toFixed(2) ? '<span class="raw-ar">raw ' + row.rawSum.toFixed(2) + "%</span>" : "") +
+            "</div>" +
+          "</div>" +
+          '<div class="pill-row">' +
+            cheeses.map(function (c) { return '<span class="pill">' + escapeHtml(c) + "</span>"; }).join("") +
+            (row.charm !== "-" ? '<span class="pill charm">' + escapeHtml(row.charm) + " Charm</span>" : "") +
+          "</div>" +
+          contributorsHtml +
+          (row.location !== "Event" ? '<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">Open setup in CRE ↗</a>' : "") +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderEmptyState(container) {
+    container.innerHTML =
+      '<div class="card empty-state">' +
+        '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 30C8 18 17 10 27 10c9 0 15 6 15 13 0 8-7 13-16 13-3.5 0-6-.6-8-1.6L12 37l1.8-6.4C10.2 28.4 8 29.6 8 30Z" fill="var(--text-muted)"/></svg>' +
+        "<div>Search for a mouse above to see its best locations.</div>" +
+      "</div>";
+  }
+
+  function applyLimit(rows) {
+    if (bestOnly) return rows.slice(0, 1);
+    return rowLimit > 0 ? rows.slice(0, rowLimit) : rows;
+  }
+
+  function renderAggregate() {
+    if (selectedMice.length === 0) { renderEmptyState(aggregatePanel); return; }
+    var rows = computeRows(selectedMice);
+    var limited = applyLimit(rows);
+    var listHtml = '<div class="result-list">' +
+      limited.map(function (row, i) { return renderRowCard(row, i + 1, selectedMice.length > 1); }).join("") +
+      "</div>";
+    aggregatePanel.innerHTML = listHtml;
+  }
+
+  function renderByMouse() {
+    if (selectedMice.length === 0) { renderEmptyState(bymousePanel); return; }
+    var html = selectedMice.map(function (mouse) {
+      var rows = computeRows([mouse]);
+      var limited = applyLimit(rows);
+      var g = groupLabelFor(mouse);
+      var groupLine = g
+        ? (g.subgroup ? "<b>" + escapeHtml(g.group) + "</b> » " + escapeHtml(g.subgroup) : "<b>" + escapeHtml(g.group) + "</b>")
+        : "Group unknown";
+      return (
+        '<div class="mouse-section">' +
+          '<div class="mouse-section-header">' +
+            "<h3>" + escapeHtml(mouse) + "</h3>" +
+            '<div class="group-line">' + groupLine + "</div>" +
+          "</div>" +
+          '<div class="result-list">' +
+            limited.map(function (row, i) { return renderRowCard(row, i + 1, false); }).join("") +
+          "</div>" +
+        "</div>"
+      );
+    }).join("");
+    bymousePanel.innerHTML = html;
+  }
+
+  function renderChips() {
+    chipsRow.innerHTML = selectedMice.map(function (mouse) {
+      var g = groupLabelFor(mouse);
+      var sub = g ? (g.subgroup || g.group) : "";
+      return (
+        '<span class="chip">' + escapeHtml(mouse) +
+          (sub ? '<span class="chip-group">· ' + escapeHtml(sub) + "</span>" : "") +
+          '<button type="button" aria-label="Remove ' + escapeHtml(mouse) + '" data-remove="' + escapeHtml(mouse) + '">×</button>' +
+        "</span>"
+      );
+    }).join("");
+  }
+
+  chipsRow.addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-remove]");
+    if (btn) removeMouse(btn.dataset.remove);
+  });
+
+  function renderAll() {
+    renderChips();
+    renderAggregate();
+    renderByMouse();
+  }
+
+  function persistState() {
+    safeLocalStorage("set", "mf_mice", JSON.stringify(selectedMice));
+    safeLocalStorage("set", "mf_bonus", String(attractionBonus));
+    safeLocalStorage("set", "mf_best_only", bestOnly ? "1" : "0");
+  }
+
+  function restoreState() {
+    var savedMice = safeLocalStorage("get", "mf_mice");
+    var savedBonus = safeLocalStorage("get", "mf_bonus");
+    var savedBestOnly = safeLocalStorage("get", "mf_best_only");
+    if (savedMice) {
+      try {
+        var arr = JSON.parse(savedMice).filter(function (m) { return populations[m]; });
+        if (arr.length) selectedMice = arr;
+      } catch (e) { /* ignore */ }
+    }
+    if (savedBonus !== null && !isNaN(parseInt(savedBonus, 10))) {
+      attractionBonus = parseInt(savedBonus, 10);
+      bonusRange.value = attractionBonus;
+      bonusValue.textContent = attractionBonus + "%";
+    }
+    if (savedBestOnly === "1") {
+      bestOnly = true;
+      bestOnlyToggle.checked = true;
+      limitSegmented.classList.add("is-disabled");
+    }
+  }
+
+  // ---------- Boot ----------
+
+  Promise.all([
+    fetch("data/populations.json").then(function (r) { return r.json(); }),
+    fetch("data/cheese-baseline.json").then(function (r) { return r.json(); }),
+    fetch("data/mouse-groups.json").then(function (r) { return r.json(); })
+  ]).then(function (results) {
+    populations = results[0];
+    cheeseBaseline = results[1];
+    mouseGroups = results[2];
+
+    restoreState();
+    if (selectedMice.length === 0) selectedMice = ["Crimson Ranger"];
+    renderAll();
+  }).catch(function (err) {
+    aggregatePanel.innerHTML = '<div class="card empty-state">Could not load mouse data. Please refresh.</div>';
+    console.error(err);
+  });
+})();
+</script>
