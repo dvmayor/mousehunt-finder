@@ -642,7 +642,7 @@
     <div class="control-group" id="mouseSortGroup">
       <label class="field-label" for="mouseSortSelect">Sort by</label>
       <select id="mouseSortSelect" class="select-input">
-        <option value="input" selected>Input Order (default)</option>
+        <option value="input" selected>Input Order</option>
         <option value="alpha">Alphabetical</option>
         <option value="rate">Attraction Rate</option>
       </select>
@@ -657,6 +657,10 @@
         <label class="best-only-toggle">
           <input type="checkbox" id="excludeSBPlusToggle">
           <span>Exclude SB+</span>
+        </label>
+        <label class="best-only-toggle">
+          <input type="checkbox" id="standardCheeseToggle">
+          <span>Standard Cheese only</span>
         </label>
       </div>
     </div>
@@ -689,6 +693,8 @@
   var rowLimit = 0;
   var bestOnly = false;
   var excludeSBPlus = false;
+  var standardCheeseOnly = false;
+  var STANDARD_CHEESES = { "Brie": 1, "Brie String": 1, "Cheddar": 1, "Gouda": 1, "Marble": 1, "Marble String": 1, "Swiss": 1, "Swiss String": 1 };
   var collapsedMice = {};
   var mouseSortMode = "input";
   var aggregateSortMode = "input";
@@ -707,6 +713,7 @@
   var mouseSortSelect = document.getElementById("mouseSortSelect");
   var bestOnlyToggle = document.getElementById("bestOnlyToggle");
   var excludeSBPlusToggle = document.getElementById("excludeSBPlusToggle");
+  var standardCheeseToggle = document.getElementById("standardCheeseToggle");
   var aggregatePanel = document.getElementById("aggregatePanel");
   var bymousePanel = document.getElementById("bymousePanel");
   var aggregateHint = document.getElementById("aggregateHint");
@@ -934,6 +941,19 @@
     renderAll();
   });
 
+  // Standard Cheese only is a stricter superset of Exclude SB+, so it forces that on too.
+  standardCheeseToggle.addEventListener("change", function () {
+    standardCheeseOnly = standardCheeseToggle.checked;
+    if (standardCheeseOnly) {
+      excludeSBPlus = true;
+      excludeSBPlusToggle.checked = true;
+    }
+    excludeSBPlusToggle.disabled = standardCheeseOnly;
+    excludeSBPlusToggle.closest("label").classList.toggle("is-disabled", standardCheeseOnly);
+    persistState();
+    renderAll();
+  });
+
   // Best Locations always shows one best pick per mouse, so "Best only" / "Show
   // top" only mean something on the By Mouse tab; grey them out otherwise.
   function updateModeControls() {
@@ -991,22 +1011,49 @@
     return onlySBPlus;
   }
 
+  var standardOptionCache = {};
+
+  // True when at least one of this mouse's cheeses is a plain Shoppe/gold cheese.
+  function mouseHasStandardOption(mouse) {
+    if (standardOptionCache[mouse] !== undefined) return standardOptionCache[mouse];
+    var locs = populations[mouse];
+    var hasStandard = false;
+    if (locs) {
+      Object.keys(locs).forEach(function (location) {
+        Object.keys(locs[location]).forEach(function (phase) {
+          Object.keys(locs[location][phase]).forEach(function (cheese) {
+            if (cheese.split("/").some(function (c) { return STANDARD_CHEESES[c]; })) hasStandard = true;
+          });
+        });
+      });
+    }
+    standardOptionCache[mouse] = hasStandard;
+    return hasStandard;
+  }
+
   function computeRows(mice) {
     var rows = {};
     mice.forEach(function (mouse) {
       var locs = populations[mouse];
       if (!locs) return;
       var skipSBPlus = excludeSBPlus && !mouseIsSBPlusOnly(mouse);
+      var applyStandardFilter = standardCheeseOnly && mouseHasStandardOption(mouse);
       Object.keys(locs).forEach(function (location) {
         Object.keys(locs[location]).forEach(function (phase) {
           Object.keys(locs[location][phase]).forEach(function (cheese) {
             if (skipSBPlus && cheese === "SB+") return;
+            var cheeseKey = cheese;
+            if (applyStandardFilter) {
+              var stdParts = cheese.split("/").filter(function (c) { return STANDARD_CHEESES[c]; });
+              if (stdParts.length === 0) return;
+              cheeseKey = stdParts.join("/");
+            }
             Object.keys(locs[location][phase][cheese]).forEach(function (charm) {
               var raw = parseFloat(locs[location][phase][cheese][charm]);
-              var baseline = baselineFor(cheese);
+              var baseline = baselineFor(cheeseKey);
               var weighted = weightedAR(raw, baseline);
-              var key = [location, phase, cheese, charm].join("~~");
-              if (!rows[key]) rows[key] = { location: location, phase: phase, cheese: cheese, charm: charm, rawSum: 0, weightedSum: 0, contributors: [] };
+              var key = [location, phase, cheeseKey, charm].join("~~");
+              if (!rows[key]) rows[key] = { location: location, phase: phase, cheese: cheeseKey, charm: charm, rawSum: 0, weightedSum: 0, contributors: [] };
               rows[key].rawSum += raw;
               rows[key].weightedSum += weighted;
               rows[key].contributors.push({ mouse: mouse, raw: raw });
@@ -1202,6 +1249,7 @@
     safeLocalStorage("set", "mf_bonus", String(attractionBonus));
     safeLocalStorage("set", "mf_best_only", bestOnly ? "1" : "0");
     safeLocalStorage("set", "mf_exclude_sbplus", excludeSBPlus ? "1" : "0");
+    safeLocalStorage("set", "mf_standard_cheese", standardCheeseOnly ? "1" : "0");
     safeLocalStorage("set", "mf_mouse_sort", mouseSortMode);
     safeLocalStorage("set", "mf_aggregate_sort", aggregateSortMode);
   }
@@ -1211,6 +1259,7 @@
     var savedBonus = safeLocalStorage("get", "mf_bonus");
     var savedBestOnly = safeLocalStorage("get", "mf_best_only");
     var savedExcludeSBPlus = safeLocalStorage("get", "mf_exclude_sbplus");
+    var savedStandardCheese = safeLocalStorage("get", "mf_standard_cheese");
     var savedMouseSort = safeLocalStorage("get", "mf_mouse_sort");
     var savedAggregateSort = safeLocalStorage("get", "mf_aggregate_sort");
     if (savedMice) {
@@ -1231,6 +1280,14 @@
     if (savedExcludeSBPlus === "1") {
       excludeSBPlus = true;
       excludeSBPlusToggle.checked = true;
+    }
+    if (savedStandardCheese === "1") {
+      standardCheeseOnly = true;
+      standardCheeseToggle.checked = true;
+      excludeSBPlus = true;
+      excludeSBPlusToggle.checked = true;
+      excludeSBPlusToggle.disabled = true;
+      excludeSBPlusToggle.closest("label").classList.add("is-disabled");
     }
     if (savedMouseSort === "alpha" || savedMouseSort === "rate") mouseSortMode = savedMouseSort;
     if (savedAggregateSort === "alpha" || savedAggregateSort === "rate") aggregateSortMode = savedAggregateSort;
