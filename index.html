@@ -98,12 +98,35 @@
     margin-bottom: 22px;
   }
 
-  .app-header svg { width: 40px; height: 40px; flex-shrink: 0; }
+  .app-header > svg { width: 40px; height: 40px; flex-shrink: 0; }
+
+  .app-header-titles { flex: 1; min-width: 0; }
 
   .app-header h1 {
     font-size: 26px;
     letter-spacing: 0.2px;
   }
+
+  .theme-toggle {
+    all: unset;
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+  }
+
+  .theme-toggle:hover { color: var(--text); border-color: var(--accent); }
+  .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .theme-toggle svg { width: 19px; height: 19px; }
+  .theme-toggle .icon-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
 
   .app-header p {
     margin: 2px 0 0;
@@ -529,9 +552,6 @@
   .contributors {
     font-size: 10.5px;
     color: var(--text-muted);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px 10px;
   }
 
   .contributors b { color: var(--text); font-weight: 600; }
@@ -622,6 +642,17 @@
   }
 </style>
 
+<script>
+  (function () {
+    var theme = "light";
+    try {
+      var saved = localStorage.getItem("mf_theme");
+      if (saved === "dark") theme = "dark";
+    } catch (e) { /* ignore */ }
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+
 <div class="app-header">
   <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path d="M8 30C8 18 17 10 27 10c9 0 15 6 15 13 0 8-7 13-16 13-3.5 0-6-.6-8-1.6L12 37l1.8-6.4C10.2 28.4 8 29.6 8 30Z" fill="var(--accent)"/>
@@ -630,10 +661,14 @@
     <circle cx="22" cy="30" r="1.3" fill="var(--accent-soft)"/>
     <circle cx="28" cy="24" r="1.8" fill="var(--accent-soft)"/>
   </svg>
-  <div>
+  <div class="app-header-titles">
     <h1>Mouse Finder</h1>
     <p>Search a mouse, see every location ranked by attraction rate.</p>
   </div>
+  <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to dark mode">
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"></path></svg>
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+  </button>
 </div>
 
 <div class="card search-card">
@@ -708,6 +743,27 @@
 <script>
 (function () {
   "use strict";
+
+  // ---------- Theme toggle ----------
+
+  var themeToggle = document.getElementById("themeToggle");
+
+  function safeStorageSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* ignore */ }
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    themeToggle.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+    safeStorageSet("mf_theme", theme);
+  }
+
+  setTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light");
+
+  themeToggle.addEventListener("click", function () {
+    var current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    setTheme(current === "dark" ? "light" : "dark");
+  });
 
   var populations = null, cheeseBaseline = null, mouseGroups = null;
   var selectedMice = [];
