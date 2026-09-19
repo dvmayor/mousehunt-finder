@@ -478,7 +478,7 @@
     gap: 2px 10px;
   }
 
-  .contributors b { color: var(--text); font-weight: 600; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .contributors b { color: var(--text); font-weight: 600; }
 
   .cre-link {
     font-size: 10.5px;
@@ -491,15 +491,15 @@
   .cre-link:hover { text-decoration: underline; }
 
   .mouse-section {
-    margin-bottom: 24px;
-    padding-bottom: 20px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom: 1px dashed var(--border);
   }
 
   .mouse-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 
   .mouse-section-header {
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -900,9 +900,10 @@
     var contributorsHtml = "";
     if (showContributors && row.contributors.length > 0) {
       var sorted = row.contributors.slice().sort(function (a, b) { return b.raw - a.raw; });
-      contributorsHtml = '<div class="contributors">' + sorted.map(function (c) {
-        return escapeHtml(c.mouse) + " <b>" + c.raw.toFixed(2) + "%</b>";
-      }).join("") + "</div>";
+      var mouseLabel = sorted.length > 1 ? "Mice" : "Mouse";
+      contributorsHtml = '<div class="contributors">' + mouseLabel + ": <b>" +
+        sorted.map(function (c) { return escapeHtml(c.mouse); }).join(", ") +
+        "</b></div>";
     }
     return (
       '<div class="result-card' + (isBest ? " best" : "") + '">' +
@@ -968,8 +969,15 @@
       var rows = computeRows(selectedMice);
       limited = rowLimit > 0 ? rows.slice(0, rowLimit) : rows;
     }
+    // Rank reflects true attraction-rate order; display is grouped alphabetically by location.
+    limited.forEach(function (row, i) { row.trueRank = i + 1; });
+    var displayRows = limited.slice().sort(function (a, b) {
+      var locCompare = a.location.localeCompare(b.location);
+      if (locCompare !== 0) return locCompare;
+      return b.weightedSum - a.weightedSum;
+    });
     var listHtml = '<div class="result-list">' +
-      limited.map(function (row, i) { return renderRowCard(row, i + 1, selectedMice.length > 1); }).join("") +
+      displayRows.map(function (row) { return renderRowCard(row, row.trueRank, selectedMice.length > 1); }).join("") +
       "</div>";
     aggregatePanel.innerHTML = listHtml;
   }
