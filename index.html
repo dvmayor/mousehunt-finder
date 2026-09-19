@@ -418,16 +418,16 @@
     font-size: 15px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    text-align: right;
   }
 
   .weighted-ar .raw-ar {
+    display: block;
     font-size: 10.5px;
     font-weight: 500;
     font-family: var(--font-body);
     color: var(--text-muted);
   }
-
-  .pill-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 
   .pill {
     font-size: 10.5px;
@@ -439,7 +439,10 @@
     border: 1px solid var(--border);
   }
 
-  .pill.charm { background: var(--accent-soft); border-color: transparent; }
+  .detail-line {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
 
   .contributors {
     font-size: 10.5px;
@@ -469,19 +472,19 @@
 
   .mouse-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 
-  .mouse-section-header { margin-bottom: 12px; }
+  .mouse-section-header { margin-bottom: 10px; }
 
   .mouse-section-header h3 {
-    font-size: 18px;
-    margin-bottom: 2px;
+    font-size: 17px;
+    font-weight: 700;
   }
 
   .mouse-section-header .group-line {
+    font-family: var(--font-body);
     font-size: 13px;
+    font-weight: 500;
     color: var(--text-muted);
   }
-
-  .mouse-section-header .group-line b { color: var(--text); font-weight: 600; }
 
   .attribution {
     margin-top: 28px;
@@ -826,7 +829,11 @@
 
   function renderRowCard(row, rank, showContributors) {
     var isBest = rank === 1;
-    var cheeses = row.cheese.split("/");
+    var detailParts = ["Bait: " + escapeHtml(row.cheese)];
+    if (row.charm !== "-") detailParts.push("Charm: " + escapeHtml(row.charm));
+    if (row.location !== "Event") {
+      detailParts.push('<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">CRE ↗</a>');
+    }
     var contributorsHtml = "";
     if (showContributors && row.contributors.length > 0) {
       var sorted = row.contributors.slice().sort(function (a, b) { return b.raw - a.raw; });
@@ -845,14 +852,10 @@
               (isBest ? '<span class="best-badge">Best</span>' : "") +
             "</div>" +
             '<div class="weighted-ar">' + row.weightedSum.toFixed(2) + "%" +
-              (row.weightedSum.toFixed(2) !== row.rawSum.toFixed(2) ? ' <span class="raw-ar">(raw ' + row.rawSum.toFixed(2) + "%)</span>" : "") +
+              (row.weightedSum.toFixed(2) !== row.rawSum.toFixed(2) ? '<span class="raw-ar">(raw ' + row.rawSum.toFixed(2) + "%)</span>" : "") +
             "</div>" +
           "</div>" +
-          '<div class="pill-row">' +
-            cheeses.map(function (c) { return '<span class="pill">' + escapeHtml(c) + "</span>"; }).join("") +
-            (row.charm !== "-" ? '<span class="pill charm">' + escapeHtml(row.charm) + "</span>" : "") +
-            (row.location !== "Event" ? '<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">CRE ↗</a>' : "") +
-          "</div>" +
+          '<div class="detail-line">' + detailParts.join(", ") + "</div>" +
           contributorsHtml +
         "</div>" +
       "</div>"
@@ -914,14 +917,13 @@
       var rows = computeRows([mouse]);
       var limited = applyLimit(rows);
       var g = groupLabelFor(mouse);
-      var groupLine = g
-        ? (g.subgroup ? "<b>" + escapeHtml(g.group) + "</b> » " + escapeHtml(g.subgroup) : "<b>" + escapeHtml(g.group) + "</b>")
+      var groupLabel = g
+        ? (g.subgroup ? escapeHtml(g.group) + " » " + escapeHtml(g.subgroup) : escapeHtml(g.group))
         : "Group unknown";
       return (
         '<div class="mouse-section">' +
           '<div class="mouse-section-header">' +
-            "<h3>" + escapeHtml(mouse) + "</h3>" +
-            '<div class="group-line">' + groupLine + "</div>" +
+            "<h3>" + escapeHtml(mouse) + ' <span class="group-line">(' + groupLabel + ")</span></h3>" +
           "</div>" +
           '<div class="result-list">' +
             limited.map(function (row, i) { return renderRowCard(row, i + 1, false); }).join("") +
