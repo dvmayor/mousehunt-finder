@@ -273,6 +273,12 @@
     color: var(--accent-ink);
   }
 
+  .toggle-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
   .best-only-toggle {
     display: inline-flex;
     align-items: center;
@@ -281,7 +287,7 @@
     font-weight: 500;
     color: var(--text);
     cursor: pointer;
-    padding: 7px 2px;
+    padding: 4px 2px;
   }
 
   .best-only-toggle input {
@@ -535,10 +541,16 @@
     </div>
     <div class="control-group">
       <label class="field-label">&nbsp;</label>
-      <label class="best-only-toggle">
-        <input type="checkbox" id="bestOnlyToggle">
-        <span>Best only</span>
-      </label>
+      <div class="toggle-stack">
+        <label class="best-only-toggle">
+          <input type="checkbox" id="bestOnlyToggle">
+          <span>Best only</span>
+        </label>
+        <label class="best-only-toggle">
+          <input type="checkbox" id="excludeSBPlusToggle">
+          <span>Exclude SB+</span>
+        </label>
+      </div>
     </div>
   </div>
 </div>
@@ -568,6 +580,7 @@
   var attractionBonus = 0;
   var rowLimit = 0;
   var bestOnly = false;
+  var excludeSBPlus = false;
   var activeTab = "bymouse";
   var activeSuggestionIndex = -1;
   var currentSuggestions = [];
@@ -579,6 +592,7 @@
   var bonusValue = document.getElementById("bonusValue");
   var limitSegmented = document.getElementById("limitSegmented");
   var bestOnlyToggle = document.getElementById("bestOnlyToggle");
+  var excludeSBPlusToggle = document.getElementById("excludeSBPlusToggle");
   var aggregatePanel = document.getElementById("aggregatePanel");
   var bymousePanel = document.getElementById("bymousePanel");
   var aggregateHint = document.getElementById("aggregateHint");
@@ -734,6 +748,12 @@
     renderAll();
   });
 
+  excludeSBPlusToggle.addEventListener("change", function () {
+    excludeSBPlus = excludeSBPlusToggle.checked;
+    persistState();
+    renderAll();
+  });
+
   document.querySelectorAll(".tab-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
@@ -748,14 +768,36 @@
 
   // ---------- Computation ----------
 
+  var sbPlusOnlyCache = {};
+
+  // True when SB+ is the ONLY cheese that ever attracts this mouse, anywhere.
+  function mouseIsSBPlusOnly(mouse) {
+    if (sbPlusOnlyCache[mouse] !== undefined) return sbPlusOnlyCache[mouse];
+    var locs = populations[mouse];
+    var onlySBPlus = true;
+    if (locs) {
+      Object.keys(locs).forEach(function (location) {
+        Object.keys(locs[location]).forEach(function (phase) {
+          Object.keys(locs[location][phase]).forEach(function (cheese) {
+            if (cheese !== "SB+") onlySBPlus = false;
+          });
+        });
+      });
+    }
+    sbPlusOnlyCache[mouse] = onlySBPlus;
+    return onlySBPlus;
+  }
+
   function computeRows(mice) {
     var rows = {};
     mice.forEach(function (mouse) {
       var locs = populations[mouse];
       if (!locs) return;
+      var skipSBPlus = excludeSBPlus && !mouseIsSBPlusOnly(mouse);
       Object.keys(locs).forEach(function (location) {
         Object.keys(locs[location]).forEach(function (phase) {
           Object.keys(locs[location][phase]).forEach(function (cheese) {
+            if (skipSBPlus && cheese === "SB+") return;
             Object.keys(locs[location][phase][cheese]).forEach(function (charm) {
               var raw = parseFloat(locs[location][phase][cheese][charm]);
               var baseline = baselineFor(cheese);
@@ -918,12 +960,14 @@
     safeLocalStorage("set", "mf_mice", JSON.stringify(selectedMice));
     safeLocalStorage("set", "mf_bonus", String(attractionBonus));
     safeLocalStorage("set", "mf_best_only", bestOnly ? "1" : "0");
+    safeLocalStorage("set", "mf_exclude_sbplus", excludeSBPlus ? "1" : "0");
   }
 
   function restoreState() {
     var savedMice = safeLocalStorage("get", "mf_mice");
     var savedBonus = safeLocalStorage("get", "mf_bonus");
     var savedBestOnly = safeLocalStorage("get", "mf_best_only");
+    var savedExcludeSBPlus = safeLocalStorage("get", "mf_exclude_sbplus");
     if (savedMice) {
       try {
         var arr = JSON.parse(savedMice).filter(function (m) { return populations[m]; });
@@ -939,6 +983,10 @@
       bestOnly = true;
       bestOnlyToggle.checked = true;
       limitSegmented.classList.add("is-disabled");
+    }
+    if (savedExcludeSBPlus === "1") {
+      excludeSBPlus = true;
+      excludeSBPlusToggle.checked = true;
     }
   }
 
