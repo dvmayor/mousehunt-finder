@@ -683,7 +683,7 @@
 
   function addMouse(name) {
     if (!populations[name] || selectedMice.indexOf(name) > -1) return;
-    selectedMice.push(name);
+    selectedMice.unshift(name);
     mouseInput.value = "";
     suggestionsList.hidden = true;
     persistState();
@@ -715,7 +715,7 @@
     } else if (e.key === "Escape") {
       suggestionsList.hidden = true;
     } else if (e.key === "Backspace" && mouseInput.value === "" && selectedMice.length) {
-      removeMouse(selectedMice[selectedMice.length - 1]);
+      removeMouse(selectedMice[0]);
     }
   });
 
