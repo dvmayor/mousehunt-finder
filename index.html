@@ -311,6 +311,11 @@
     pointer-events: none;
   }
 
+  .best-only-toggle.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
   .tabs {
     display: flex;
     gap: 6px;
@@ -626,7 +631,7 @@
 </div>
 
 <p class="tab-hint" id="bymouseHint">Each selected mouse's own best locations, ranked separately.</p>
-<p class="tab-hint" id="aggregateHint" hidden>One combined ranking across every selected mouse — useful for finding a single spot where more than one of them can show up.</p>
+<p class="tab-hint" id="aggregateHint" hidden>Each selected mouse's single best pick, one row per mouse, sorted alphabetically by location. Mice tied on the exact same spot share a row.</p>
 
 <div id="aggregatePanel" hidden></div>
 <div id="bymousePanel"></div>
@@ -809,7 +814,7 @@
 
   bestOnlyToggle.addEventListener("change", function () {
     bestOnly = bestOnlyToggle.checked;
-    limitSegmented.classList.toggle("is-disabled", bestOnly);
+    updateModeControls();
     persistState();
     renderAll();
   });
@@ -820,6 +825,15 @@
     renderAll();
   });
 
+  // Best Locations always shows one best pick per mouse, so "Best only" / "Show
+  // top" only mean something on the By Mouse tab; grey them out otherwise.
+  function updateModeControls() {
+    var onAggregate = activeTab === "aggregate";
+    bestOnlyToggle.disabled = onAggregate;
+    bestOnlyToggle.closest("label").classList.toggle("is-disabled", onAggregate);
+    limitSegmented.classList.toggle("is-disabled", onAggregate || bestOnly);
+  }
+
   document.querySelectorAll(".tab-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
@@ -829,6 +843,7 @@
       bymousePanel.hidden = activeTab !== "bymouse";
       aggregateHint.hidden = activeTab !== "aggregate";
       bymouseHint.hidden = activeTab !== "bymouse";
+      updateModeControls();
     });
   });
 
@@ -962,13 +977,8 @@
 
   function renderAggregate() {
     if (selectedMice.length === 0) { renderEmptyState(aggregatePanel); return; }
-    var limited;
-    if (bestOnly) {
-      limited = computeAggregateBestOnly(selectedMice);
-    } else {
-      var rows = computeRows(selectedMice);
-      limited = rowLimit > 0 ? rows.slice(0, rowLimit) : rows;
-    }
+    // Best Locations always shows each mouse's single top pick, never its full list.
+    var limited = computeAggregateBestOnly(selectedMice);
     // Rank reflects true attraction-rate order; display is grouped alphabetically by location.
     limited.forEach(function (row, i) { row.trueRank = i + 1; });
     var displayRows = limited.slice().sort(function (a, b) {
@@ -1070,12 +1080,12 @@
     if (savedBestOnly === "1") {
       bestOnly = true;
       bestOnlyToggle.checked = true;
-      limitSegmented.classList.add("is-disabled");
     }
     if (savedExcludeSBPlus === "1") {
       excludeSBPlus = true;
       excludeSBPlusToggle.checked = true;
     }
+    updateModeControls();
   }
 
   // ---------- Boot ----------
