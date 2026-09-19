@@ -280,6 +280,22 @@
     flex-wrap: wrap;
   }
 
+  .select-input {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .select-input:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .select-input:disabled { opacity: 0.45; pointer-events: none; cursor: default; }
+
   .segmented button {
     all: unset;
     cursor: pointer;
@@ -623,6 +639,14 @@
         <button data-limit="0" class="active">All</button>
       </div>
     </div>
+    <div class="control-group" id="mouseSortGroup">
+      <label class="field-label" for="mouseSortSelect">Sort by</label>
+      <select id="mouseSortSelect" class="select-input">
+        <option value="input" selected>Input Order (default)</option>
+        <option value="alpha">Alphabetical</option>
+        <option value="rate">Attraction Rate</option>
+      </select>
+    </div>
     <div class="control-group">
       <label class="field-label">&nbsp;</label>
       <div class="toggle-stack">
@@ -645,7 +669,7 @@
 </div>
 
 <p class="tab-hint" id="bymouseHint">Each selected mouse's own best locations, ranked separately.</p>
-<p class="tab-hint" id="aggregateHint" hidden>Each selected mouse's single best pick, one row per mouse, sorted alphabetically by location. Mice tied on the exact same spot share a row.</p>
+<p class="tab-hint" id="aggregateHint" hidden>Each selected mouse's single best pick, one row per mouse. Mice tied on the exact same spot share a row.</p>
 
 <div id="aggregatePanel" hidden></div>
 <div id="bymousePanel"></div>
@@ -666,6 +690,8 @@
   var bestOnly = false;
   var excludeSBPlus = false;
   var collapsedMice = {};
+  var mouseSortMode = "input";
+  var aggregateSortMode = "input";
   var activeTab = "bymouse";
   var activeSuggestionIndex = -1;
   var currentSuggestions = [];
@@ -678,6 +704,7 @@
   var bonusRange = document.getElementById("bonusRange");
   var bonusValue = document.getElementById("bonusValue");
   var limitSegmented = document.getElementById("limitSegmented");
+  var mouseSortSelect = document.getElementById("mouseSortSelect");
   var bestOnlyToggle = document.getElementById("bestOnlyToggle");
   var excludeSBPlusToggle = document.getElementById("excludeSBPlusToggle");
   var aggregatePanel = document.getElementById("aggregatePanel");
@@ -914,7 +941,20 @@
     bestOnlyToggle.disabled = onAggregate;
     bestOnlyToggle.closest("label").classList.toggle("is-disabled", onAggregate);
     limitSegmented.classList.toggle("is-disabled", onAggregate || bestOnly);
+    // The sort dropdown applies to both tabs, but each tab keeps its own choice.
+    mouseSortSelect.value = onAggregate ? aggregateSortMode : mouseSortMode;
   }
+
+  mouseSortSelect.addEventListener("change", function () {
+    if (activeTab === "aggregate") {
+      aggregateSortMode = mouseSortSelect.value;
+      renderAggregate();
+    } else {
+      mouseSortMode = mouseSortSelect.value;
+      renderByMouse();
+    }
+    persistState();
+  });
 
   document.querySelectorAll(".tab-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -987,8 +1027,7 @@
     return "https://tsitu.github.io/MH-Tools/cre.html?" + params;
   }
 
-  function renderRowCard(row, rank, showContributors) {
-    var isBest = rank === 1;
+  function renderRowCard(row, rank, showContributors, isBest) {
     var detailParts = ["Bait: <b>" + escapeHtml(row.cheese) + "</b>"];
     if (row.charm !== "-") detailParts.push("Charm: <b>" + escapeHtml(row.charm) + "</b>");
     if (row.location !== "Event") {
@@ -1060,23 +1099,45 @@
   function renderAggregate() {
     if (selectedMice.length === 0) { renderEmptyState(aggregatePanel); return; }
     // Best Locations always shows each mouse's single top pick, never its full list.
+    // computeAggregateBestOnly already returns these sorted by attraction rate descending.
     var limited = computeAggregateBestOnly(selectedMice);
-    // Rank reflects true attraction-rate order; display is grouped alphabetically by location.
-    limited.forEach(function (row, i) { row.trueRank = i + 1; });
-    var displayRows = limited.slice().sort(function (a, b) {
-      var locCompare = a.location.localeCompare(b.location);
-      if (locCompare !== 0) return locCompare;
-      return b.weightedSum - a.weightedSum;
-    });
+    var trueBest = limited[0];
+    var displayRows = limited.slice();
+    if (aggregateSortMode === "alpha") {
+      displayRows.sort(function (a, b) { return a.location.localeCompare(b.location); });
+    } else if (aggregateSortMode === "input") {
+      displayRows.sort(function (a, b) {
+        return mouseInputIndex(a.contributors[0].mouse) - mouseInputIndex(b.contributors[0].mouse);
+      });
+    } // "rate" needs no re-sort, already in that order
     var listHtml = '<div class="result-list">' +
-      displayRows.map(function (row) { return renderRowCard(row, row.trueRank, selectedMice.length > 1); }).join("") +
+      displayRows.map(function (row, i) {
+        return renderRowCard(row, i + 1, selectedMice.length > 1, row === trueBest);
+      }).join("") +
       "</div>";
     aggregatePanel.innerHTML = listHtml;
   }
 
+  function mouseInputIndex(mouse) {
+    var i = selectedMice.indexOf(mouse);
+    return i === -1 ? selectedMice.length : i;
+  }
+
   function renderByMouse() {
     if (selectedMice.length === 0) { renderEmptyState(bymousePanel); return; }
-    var html = selectedMice.map(function (mouse) {
+    var orderedMice = selectedMice.slice();
+    if (mouseSortMode === "alpha") {
+      orderedMice.sort(function (a, b) { return a.localeCompare(b); });
+    } else if (mouseSortMode === "rate") {
+      orderedMice.sort(function (a, b) {
+        var aRows = computeRows([a]);
+        var bRows = computeRows([b]);
+        var aTop = aRows.length ? aRows[0].weightedSum : -1;
+        var bTop = bRows.length ? bRows[0].weightedSum : -1;
+        return bTop - aTop;
+      });
+    } // "input" keeps selectedMice's own order
+    var html = orderedMice.map(function (mouse) {
       var rows = computeRows([mouse]);
       var limited = applyLimit(rows);
       var g = groupLabelFor(mouse);
@@ -1094,7 +1155,7 @@
             '<span class="collapsed-count">' + limited.length + (limited.length === 1 ? " result" : " results") + "</span>" +
           "</div>" +
           '<div class="result-list">' +
-            limited.map(function (row, i) { return renderRowCard(row, i + 1, false); }).join("") +
+            limited.map(function (row, i) { return renderRowCard(row, i + 1, false, i === 0); }).join("") +
           "</div>" +
         "</div>"
       );
@@ -1141,6 +1202,8 @@
     safeLocalStorage("set", "mf_bonus", String(attractionBonus));
     safeLocalStorage("set", "mf_best_only", bestOnly ? "1" : "0");
     safeLocalStorage("set", "mf_exclude_sbplus", excludeSBPlus ? "1" : "0");
+    safeLocalStorage("set", "mf_mouse_sort", mouseSortMode);
+    safeLocalStorage("set", "mf_aggregate_sort", aggregateSortMode);
   }
 
   function restoreState() {
@@ -1148,6 +1211,8 @@
     var savedBonus = safeLocalStorage("get", "mf_bonus");
     var savedBestOnly = safeLocalStorage("get", "mf_best_only");
     var savedExcludeSBPlus = safeLocalStorage("get", "mf_exclude_sbplus");
+    var savedMouseSort = safeLocalStorage("get", "mf_mouse_sort");
+    var savedAggregateSort = safeLocalStorage("get", "mf_aggregate_sort");
     if (savedMice) {
       try {
         var arr = JSON.parse(savedMice).filter(function (m) { return populations[m]; });
@@ -1167,6 +1232,8 @@
       excludeSBPlus = true;
       excludeSBPlusToggle.checked = true;
     }
+    if (savedMouseSort === "alpha" || savedMouseSort === "rate") mouseSortMode = savedMouseSort;
+    if (savedAggregateSort === "alpha" || savedAggregateSort === "rate") aggregateSortMode = savedAggregateSort;
     updateModeControls();
   }
 
