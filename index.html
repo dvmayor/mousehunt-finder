@@ -323,6 +323,12 @@
     border-color: var(--accent);
   }
 
+  .tab-hint {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: 0 2px 14px;
+  }
+
   .empty-state {
     text-align: center;
     padding: 40px 20px;
@@ -332,16 +338,16 @@
 
   .empty-state svg { width: 56px; height: 56px; margin-bottom: 10px; opacity: 0.6; }
 
-  .result-list { display: flex; flex-direction: column; gap: 10px; }
+  .result-list { display: flex; flex-direction: column; gap: 5px; }
 
   .result-card {
     background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
     display: flex;
-    gap: 14px;
-    align-items: flex-start;
+    gap: 9px;
+    align-items: center;
   }
 
   .result-card.best {
@@ -352,16 +358,15 @@
   .rank-badge {
     font-family: var(--font-mono);
     font-weight: 600;
-    font-size: 13px;
+    font-size: 10.5px;
     color: var(--text-muted);
     background: var(--surface-2);
     border-radius: 50%;
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    margin-top: 2px;
   }
 
   .result-card.best .rank-badge {
@@ -369,56 +374,59 @@
     color: var(--accent-ink);
   }
 
-  .result-main { flex: 1; min-width: 0; }
+  .result-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 
   .result-top-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
+    align-items: baseline;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
   .location-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 16px;
+    font-size: 13.5px;
   }
 
   .best-badge {
-    font-size: 10.5px;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     background: var(--best);
     color: var(--accent-ink);
-    padding: 2px 8px;
+    padding: 1px 6px;
     border-radius: 999px;
-    margin-left: 8px;
     vertical-align: middle;
   }
 
   .weighted-ar {
     font-family: var(--font-mono);
     font-weight: 600;
-    font-size: 20px;
+    font-size: 15px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
 
   .weighted-ar .raw-ar {
-    display: block;
-    font-size: 11.5px;
+    font-size: 10.5px;
     font-weight: 500;
+    font-family: var(--font-body);
     color: var(--text-muted);
-    text-align: right;
   }
 
-  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .pill-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 
   .pill {
-    font-size: 12.5px;
-    padding: 3px 10px;
+    font-size: 10.5px;
+    line-height: 1.5;
+    padding: 1px 7px;
     border-radius: 999px;
     background: var(--surface-2);
     color: var(--text);
@@ -428,23 +436,21 @@
   .pill.charm { background: var(--accent-soft); border-color: transparent; }
 
   .contributors {
-    margin-top: 9px;
-    font-size: 12.5px;
+    font-size: 10.5px;
     color: var(--text-muted);
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 12px;
+    gap: 2px 10px;
   }
 
   .contributors b { color: var(--text); font-weight: 600; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
   .cre-link {
-    display: inline-block;
-    margin-top: 9px;
-    font-size: 12px;
+    font-size: 10.5px;
     font-weight: 600;
     color: var(--accent-strong);
     text-decoration: none;
+    white-space: nowrap;
   }
 
   .cre-link:hover { text-decoration: underline; }
@@ -538,12 +544,15 @@
 </div>
 
 <div class="tabs">
-  <button class="tab-btn active" data-tab="aggregate">Best Locations</button>
-  <button class="tab-btn" data-tab="bymouse">By Mouse</button>
+  <button class="tab-btn active" data-tab="bymouse">By Mouse</button>
+  <button class="tab-btn" data-tab="aggregate">Best Locations</button>
 </div>
 
-<div id="aggregatePanel"></div>
-<div id="bymousePanel" hidden></div>
+<p class="tab-hint" id="bymouseHint">Each selected mouse's own best locations, ranked separately.</p>
+<p class="tab-hint" id="aggregateHint" hidden>One combined ranking across every selected mouse — useful for finding a single spot where more than one of them can show up.</p>
+
+<div id="aggregatePanel" hidden></div>
+<div id="bymousePanel"></div>
 
 <div class="attribution">
   Attraction data sourced from <a href="https://tsitu.github.io/MH-Tools/" target="_blank" rel="noopener">tsitu's MH-Tools</a>,
@@ -559,7 +568,7 @@
   var attractionBonus = 0;
   var rowLimit = 0;
   var bestOnly = false;
-  var activeTab = "aggregate";
+  var activeTab = "bymouse";
   var activeSuggestionIndex = -1;
   var currentSuggestions = [];
 
@@ -572,6 +581,8 @@
   var bestOnlyToggle = document.getElementById("bestOnlyToggle");
   var aggregatePanel = document.getElementById("aggregatePanel");
   var bymousePanel = document.getElementById("bymousePanel");
+  var aggregateHint = document.getElementById("aggregateHint");
+  var bymouseHint = document.getElementById("bymouseHint");
 
   function safeLocalStorage(action, key, value) {
     try {
@@ -730,6 +741,8 @@
       activeTab = btn.dataset.tab;
       aggregatePanel.hidden = activeTab !== "aggregate";
       bymousePanel.hidden = activeTab !== "bymouse";
+      aggregateHint.hidden = activeTab !== "aggregate";
+      bymouseHint.hidden = activeTab !== "bymouse";
     });
   });
 
@@ -784,20 +797,21 @@
         '<div class="rank-badge">' + rank + "</div>" +
         '<div class="result-main">' +
           '<div class="result-top-row">' +
-            '<div class="location-line">' + escapeHtml(row.location) +
-              (row.phase !== "-" ? '<span class="pill" style="margin-left:8px;">' + escapeHtml(row.phase) + "</span>" : "") +
+            '<div class="location-line">' +
+              "<span>" + escapeHtml(row.location) + "</span>" +
+              (row.phase !== "-" ? '<span class="pill">' + escapeHtml(row.phase) + "</span>" : "") +
               (isBest ? '<span class="best-badge">Best</span>' : "") +
             "</div>" +
             '<div class="weighted-ar">' + row.weightedSum.toFixed(2) + "%" +
-              (row.weightedSum.toFixed(2) !== row.rawSum.toFixed(2) ? '<span class="raw-ar">raw ' + row.rawSum.toFixed(2) + "%</span>" : "") +
+              (row.weightedSum.toFixed(2) !== row.rawSum.toFixed(2) ? ' <span class="raw-ar">(raw ' + row.rawSum.toFixed(2) + "%)</span>" : "") +
             "</div>" +
           "</div>" +
           '<div class="pill-row">' +
             cheeses.map(function (c) { return '<span class="pill">' + escapeHtml(c) + "</span>"; }).join("") +
-            (row.charm !== "-" ? '<span class="pill charm">' + escapeHtml(row.charm) + " Charm</span>" : "") +
+            (row.charm !== "-" ? '<span class="pill charm">' + escapeHtml(row.charm) + "</span>" : "") +
+            (row.location !== "Event" ? '<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">CRE ↗</a>' : "") +
           "</div>" +
           contributorsHtml +
-          (row.location !== "Event" ? '<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">Open setup in CRE ↗</a>' : "") +
         "</div>" +
       "</div>"
     );
@@ -816,10 +830,36 @@
     return rowLimit > 0 ? rows.slice(0, rowLimit) : rows;
   }
 
+  // "Best only" for the combined view shows each mouse's own top pick,
+  // merging mice that happen to share the exact same best combo.
+  function computeAggregateBestOnly(mice) {
+    var bestByKey = {};
+    var order = [];
+    mice.forEach(function (mouse) {
+      var rows = computeRows([mouse]);
+      if (rows.length === 0) return;
+      var top = rows[0];
+      var key = [top.location, top.phase, top.cheese, top.charm].join("~~");
+      if (!bestByKey[key]) {
+        bestByKey[key] = { location: top.location, phase: top.phase, cheese: top.cheese, charm: top.charm, rawSum: 0, weightedSum: 0, contributors: [] };
+        order.push(key);
+      }
+      bestByKey[key].rawSum += top.rawSum;
+      bestByKey[key].weightedSum += top.weightedSum;
+      bestByKey[key].contributors = bestByKey[key].contributors.concat(top.contributors);
+    });
+    return order.map(function (k) { return bestByKey[k]; }).sort(function (a, b) { return b.weightedSum - a.weightedSum; });
+  }
+
   function renderAggregate() {
     if (selectedMice.length === 0) { renderEmptyState(aggregatePanel); return; }
-    var rows = computeRows(selectedMice);
-    var limited = applyLimit(rows);
+    var limited;
+    if (bestOnly) {
+      limited = computeAggregateBestOnly(selectedMice);
+    } else {
+      var rows = computeRows(selectedMice);
+      limited = rowLimit > 0 ? rows.slice(0, rowLimit) : rows;
+    }
     var listHtml = '<div class="result-list">' +
       limited.map(function (row, i) { return renderRowCard(row, i + 1, selectedMice.length > 1); }).join("") +
       "</div>";
