@@ -161,6 +161,21 @@
     gap: 10px;
   }
 
+  .mice-count-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mice-count-row[hidden] { display: none; }
+
+  .mice-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
   .clear-all-btn {
     all: unset;
     cursor: pointer;
@@ -694,7 +709,10 @@
 <div class="card search-card">
   <div class="search-label-row">
     <label class="field-label" for="mouseInput">Add a mouse</label>
-    <button type="button" class="clear-all-btn" id="clearAllBtn" hidden>Clear all</button>
+    <div class="mice-count-row" id="miceCountRow" hidden>
+      <span class="mice-count" id="miceCount"></span>
+      <button type="button" class="clear-all-btn" id="clearAllBtn">Clear all</button>
+    </div>
   </div>
   <div class="search-input-wrap">
     <input id="mouseInput" type="text" placeholder="Type a mouse name, or paste a list…" autocomplete="off" role="combobox" aria-expanded="false" aria-owns="suggestionsList">
@@ -807,6 +825,8 @@
   var pasteFeedback = document.getElementById("pasteFeedback");
   var chipsRow = document.getElementById("chipsRow");
   var clearAllBtn = document.getElementById("clearAllBtn");
+  var miceCountRow = document.getElementById("miceCountRow");
+  var miceCount = document.getElementById("miceCount");
   var mouseNameLookup = {};
   var indexToMouse = [];
   var mouseToIndex = {};
@@ -1320,7 +1340,8 @@
         "</span>"
       );
     }).join("");
-    clearAllBtn.hidden = selectedMice.length === 0;
+    miceCountRow.hidden = selectedMice.length === 0;
+    miceCount.textContent = selectedMice.length + (selectedMice.length === 1 ? " mouse" : " mice");
   }
 
   chipsRow.addEventListener("click", function (e) {
