@@ -253,6 +253,52 @@
     border-top: 1px dashed var(--border);
   }
 
+  .share-row {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .copy-link-btn { flex-shrink: 0; }
+
+  .share-link-fallback {
+    flex: 1 1 200px;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--accent);
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .copy-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color .15s ease;
+  }
+
+  .copy-link-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .copy-link-btn:hover { background: var(--accent); color: var(--accent-ink); }
+  .copy-link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .copy-link-btn.copied { background: var(--best); color: var(--accent-ink); }
+
   .control-group { flex: 1 1 200px; min-width: 180px; }
 
   .control-group .field-label { margin-bottom: 6px; }
@@ -498,9 +544,15 @@
   }
 
   .detail-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
     font-size: 11px;
     color: var(--text-muted);
   }
+
+  .detail-line .cre-link { flex-shrink: 0; }
 
   .detail-line b { color: var(--text); font-weight: 700; }
 
@@ -665,6 +717,14 @@
       </div>
     </div>
   </div>
+
+  <div class="share-row">
+    <button type="button" class="copy-link-btn" id="copyLinkBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"></path><path d="M14 11a5 5 0 0 0-7.07 0l-2.83 2.83a5 5 0 0 0 7.07 7.07l1.5-1.5"></path></svg>
+      <span>Copy link to this search</span>
+    </button>
+    <input type="text" id="shareLinkFallback" class="share-link-fallback" readonly aria-label="Search link">
+  </div>
 </div>
 
 <div class="tabs">
@@ -707,6 +767,11 @@
   var pasteFeedback = document.getElementById("pasteFeedback");
   var chipsRow = document.getElementById("chipsRow");
   var mouseNameLookup = {};
+  var indexToMouse = [];
+  var mouseToIndex = {};
+  var copyLinkBtn = document.getElementById("copyLinkBtn");
+  var shareLinkFallback = document.getElementById("shareLinkFallback");
+  shareLinkFallback.addEventListener("focus", function () { shareLinkFallback.select(); });
   var bonusRange = document.getElementById("bonusRange");
   var bonusValue = document.getElementById("bonusValue");
   var limitSegmented = document.getElementById("limitSegmented");
@@ -926,6 +991,7 @@
     btn.classList.add("active");
     rowLimit = parseInt(btn.dataset.limit, 10);
     renderAll();
+    updateShareLinkDisplay();
   });
 
   bestOnlyToggle.addEventListener("change", function () {
@@ -986,6 +1052,7 @@
       aggregateHint.hidden = activeTab !== "aggregate";
       bymouseHint.hidden = activeTab !== "bymouse";
       updateModeControls();
+      updateShareLinkDisplay();
     });
   });
 
@@ -1077,9 +1144,9 @@
   function renderRowCard(row, rank, showContributors, isBest) {
     var detailParts = ["Bait: <b>" + escapeHtml(row.cheese) + "</b>"];
     if (row.charm !== "-") detailParts.push("Charm: <b>" + escapeHtml(row.charm) + "</b>");
-    if (row.location !== "Event") {
-      detailParts.push('<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">CRE ↗</a>');
-    }
+    var creHtml = row.location !== "Event"
+      ? '<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">CRE ↗</a>'
+      : "";
     var contributorsHtml = "";
     if (showContributors && row.contributors.length > 0) {
       var sorted = row.contributors.slice().sort(function (a, b) { return b.raw - a.raw; });
@@ -1102,7 +1169,7 @@
               (row.weightedSum.toFixed(2) !== row.rawSum.toFixed(2) ? '<span class="raw-ar">(raw ' + row.rawSum.toFixed(2) + "%)</span>" : "") +
             "</div>" +
           "</div>" +
-          '<div class="detail-line">' + detailParts.join(", ") + "</div>" +
+          '<div class="detail-line"><span>' + detailParts.join(", ") + "</span>" + creHtml + "</div>" +
           contributorsHtml +
         "</div>" +
       "</div>"
@@ -1244,6 +1311,137 @@
     renderByMouse();
   }
 
+  // ---------- Shareable link ----------
+
+  var SORT_CODE = { input: "i", alpha: "a", rate: "r" };
+  var SORT_FROM_CODE = { i: "input", a: "alpha", r: "rate" };
+
+  function buildShareURL() {
+    var mIndices = selectedMice
+      .map(function (m) { return mouseToIndex[m]; })
+      .filter(function (i) { return i !== undefined; })
+      .map(function (i) { return i.toString(36); });
+    var params = new URLSearchParams();
+    params.set("m", mIndices.join("-"));
+    params.set("b", String(attractionBonus));
+    params.set("bo", bestOnly ? "1" : "0");
+    params.set("sb", excludeSBPlus ? "1" : "0");
+    params.set("sc", standardCheeseOnly ? "1" : "0");
+    params.set("ms", SORT_CODE[mouseSortMode] || "i");
+    params.set("as", SORT_CODE[aggregateSortMode] || "i");
+    params.set("rl", String(rowLimit));
+    params.set("t", activeTab === "aggregate" ? "a" : "b");
+    return location.origin + location.pathname + "?" + params.toString();
+  }
+
+  function parseStateFromURL() {
+    if (!location.search || location.search.length < 2) return null;
+    var params = new URLSearchParams(location.search);
+    if (!params.has("m")) return null;
+    var mParam = params.get("m") || "";
+    var mice = mParam
+      ? mParam.split("-").map(function (s) { return indexToMouse[parseInt(s, 36)]; }).filter(Boolean)
+      : [];
+    return {
+      mice: mice,
+      bonus: parseInt(params.get("b") || "0", 10),
+      bestOnly: params.get("bo") === "1",
+      excludeSBPlus: params.get("sb") === "1",
+      standardCheeseOnly: params.get("sc") === "1",
+      mouseSortMode: SORT_FROM_CODE[params.get("ms")] || "input",
+      aggregateSortMode: SORT_FROM_CODE[params.get("as")] || "input",
+      rowLimit: parseInt(params.get("rl") || "0", 10),
+      activeTab: params.get("t") === "a" ? "aggregate" : "bymouse"
+    };
+  }
+
+  function applyURLState(state) {
+    selectedMice = state.mice;
+    attractionBonus = state.bonus || 0;
+    bonusRange.value = attractionBonus;
+    bonusValue.textContent = attractionBonus + "%";
+    bestOnly = state.bestOnly;
+    bestOnlyToggle.checked = bestOnly;
+    excludeSBPlus = state.excludeSBPlus;
+    excludeSBPlusToggle.checked = excludeSBPlus;
+    standardCheeseOnly = state.standardCheeseOnly;
+    standardCheeseToggle.checked = standardCheeseOnly;
+    if (standardCheeseOnly) {
+      excludeSBPlus = true;
+      excludeSBPlusToggle.checked = true;
+      excludeSBPlusToggle.disabled = true;
+      excludeSBPlusToggle.closest("label").classList.add("is-disabled");
+    }
+    mouseSortMode = state.mouseSortMode;
+    aggregateSortMode = state.aggregateSortMode;
+    mouseSortSelect.value = activeTab === "aggregate" ? aggregateSortMode : mouseSortMode;
+    rowLimit = state.rowLimit;
+    limitSegmented.querySelectorAll("button").forEach(function (b) {
+      b.classList.toggle("active", parseInt(b.dataset.limit, 10) === rowLimit);
+    });
+    activeTab = state.activeTab;
+    document.querySelectorAll(".tab-btn").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.tab === activeTab);
+    });
+    aggregatePanel.hidden = activeTab !== "aggregate";
+    bymousePanel.hidden = activeTab !== "bymouse";
+    aggregateHint.hidden = activeTab !== "aggregate";
+    bymouseHint.hidden = activeTab !== "bymouse";
+    updateModeControls();
+  }
+
+  function updateShareLinkDisplay() {
+    shareLinkFallback.value = buildShareURL();
+  }
+
+  function showCopyFeedback(success, url) {
+    var label = copyLinkBtn.querySelector("span");
+    var original = "Copy link to this search";
+    shareLinkFallback.value = url;
+    if (success) {
+      copyLinkBtn.classList.add("copied");
+      label.textContent = "Link copied!";
+    } else {
+      label.textContent = "Select & copy below";
+      shareLinkFallback.focus();
+      shareLinkFallback.select();
+    }
+    setTimeout(function () {
+      copyLinkBtn.classList.remove("copied");
+      label.textContent = original;
+    }, 2000);
+  }
+
+  function fallbackCopy(url) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = url;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      showCopyFeedback(ok, url);
+    } catch (e) {
+      showCopyFeedback(false, url);
+    }
+  }
+
+  copyLinkBtn.addEventListener("click", function () {
+    var url = buildShareURL();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        showCopyFeedback(true, url);
+      }).catch(function () {
+        fallbackCopy(url);
+      });
+    } else {
+      fallbackCopy(url);
+    }
+  });
+
   function persistState() {
     safeLocalStorage("set", "mf_mice", JSON.stringify(selectedMice));
     safeLocalStorage("set", "mf_bonus", String(attractionBonus));
@@ -1252,6 +1450,7 @@
     safeLocalStorage("set", "mf_standard_cheese", standardCheeseOnly ? "1" : "0");
     safeLocalStorage("set", "mf_mouse_sort", mouseSortMode);
     safeLocalStorage("set", "mf_aggregate_sort", aggregateSortMode);
+    updateShareLinkDisplay();
   }
 
   function restoreState() {
@@ -1305,10 +1504,18 @@
     cheeseBaseline = results[1];
     mouseGroups = results[2];
     Object.keys(populations).forEach(function (n) { mouseNameLookup[n.toLowerCase()] = n; });
+    indexToMouse = Object.keys(populations).sort();
+    indexToMouse.forEach(function (n, i) { mouseToIndex[n] = i; });
 
-    restoreState();
-    if (selectedMice.length === 0) selectedMice = ["Crimson Ranger"];
+    var urlState = parseStateFromURL();
+    if (urlState && urlState.mice.length > 0) {
+      applyURLState(urlState);
+    } else {
+      restoreState();
+      if (selectedMice.length === 0) selectedMice = ["Crimson Ranger"];
+    }
     renderAll();
+    updateShareLinkDisplay();
   }).catch(function (err) {
     aggregatePanel.innerHTML = '<div class="card empty-state">Could not load mouse data. Please refresh.</div>';
     console.error(err);
