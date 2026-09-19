@@ -196,6 +196,19 @@
     margin-top: 14px;
   }
 
+  .paste-feedback {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--best-bg);
+    border: 1px solid var(--best-border);
+    color: var(--text);
+    font-size: 12.5px;
+  }
+
+  .paste-feedback b { font-weight: 600; }
+  .paste-feedback.has-issues { background: var(--surface-2); border-color: var(--border); }
+
   .chip {
     display: flex;
     align-items: center;
@@ -588,9 +601,10 @@
 <div class="card search-card">
   <label class="field-label" for="mouseInput">Add a mouse</label>
   <div class="search-input-wrap">
-    <input id="mouseInput" type="text" placeholder="Type a mouse name…" autocomplete="off" role="combobox" aria-expanded="false" aria-owns="suggestionsList">
+    <input id="mouseInput" type="text" placeholder="Type a mouse name, or paste a list…" autocomplete="off" role="combobox" aria-expanded="false" aria-owns="suggestionsList">
     <div class="suggestions" id="suggestionsList" hidden></div>
   </div>
+  <div class="paste-feedback" id="pasteFeedback" hidden></div>
   <div class="chips" id="chipsRow"></div>
 
   <div class="controls-row">
@@ -658,7 +672,9 @@
 
   var mouseInput = document.getElementById("mouseInput");
   var suggestionsList = document.getElementById("suggestionsList");
+  var pasteFeedback = document.getElementById("pasteFeedback");
   var chipsRow = document.getElementById("chipsRow");
+  var mouseNameLookup = {};
   var bonusRange = document.getElementById("bonusRange");
   var bonusValue = document.getElementById("bonusValue");
   var limitSegmented = document.getElementById("limitSegmented");
@@ -762,7 +778,73 @@
     renderAll();
   }
 
+  // ---------- Bulk paste ----------
+
+  // Lines like "Missing mice in other locations:(9)" from checklist screenshots/copies.
+  function isHeaderLine(line) {
+    return /:\s*\(\d+\)\s*$/.test(line);
+  }
+
+  function resolveMouseName(raw) {
+    var name = raw.trim();
+    if (!name) return null;
+    name = name.replace(/’/g, "'").replace(/\s+Mouse$/i, "");
+    if (populations[name]) return name;
+    return mouseNameLookup[name.toLowerCase()] || null;
+  }
+
+  function showPasteFeedback(addedCount, matchedCount, unmatched) {
+    var parts = [];
+    if (addedCount > 0) {
+      parts.push("Added <b>" + addedCount + "</b> " + (addedCount === 1 ? "mouse" : "mice") + " from paste.");
+    } else if (matchedCount > 0) {
+      parts.push("Those mice were already added.");
+    } else {
+      parts.push("No mice recognized in the pasted text.");
+    }
+    var hasIssues = unmatched.length > 0;
+    if (hasIssues) {
+      parts.push("Not recognized: " + unmatched.slice(0, 8).map(escapeHtml).join(", ") + (unmatched.length > 8 ? "…" : ""));
+    }
+    pasteFeedback.innerHTML = parts.join(" ");
+    pasteFeedback.classList.toggle("has-issues", hasIssues);
+    pasteFeedback.hidden = false;
+  }
+
+  function addMultipleMice(text) {
+    var lines = text.split(/\r?\n/);
+    var matched = [];
+    var unmatched = [];
+    var seen = {};
+    lines.forEach(function (rawLine) {
+      var line = rawLine.trim();
+      if (!line || isHeaderLine(line)) return;
+      var resolved = resolveMouseName(line);
+      if (resolved) {
+        if (!seen[resolved]) { seen[resolved] = true; matched.push(resolved); }
+      } else {
+        unmatched.push(line);
+      }
+    });
+
+    var newOnes = matched.filter(function (m) { return selectedMice.indexOf(m) === -1; });
+    if (newOnes.length) selectedMice = newOnes.concat(selectedMice);
+
+    mouseInput.value = "";
+    suggestionsList.hidden = true;
+    showPasteFeedback(newOnes.length, matched.length, unmatched);
+    persistState();
+    renderAll();
+  }
+
   mouseInput.addEventListener("input", function () { renderSuggestions(mouseInput.value); });
+
+  mouseInput.addEventListener("paste", function (e) {
+    var text = (e.clipboardData || window.clipboardData).getData("text");
+    if (!text || text.indexOf("\n") === -1) return; // single-item paste: let normal search handle it
+    e.preventDefault();
+    addMultipleMice(text);
+  });
 
   mouseInput.addEventListener("keydown", function (e) {
     if (suggestionsList.hidden) return;
@@ -1098,6 +1180,7 @@
     populations = results[0];
     cheeseBaseline = results[1];
     mouseGroups = results[2];
+    Object.keys(populations).forEach(function (n) { mouseNameLookup[n.toLowerCase()] = n; });
 
     restoreState();
     if (selectedMice.length === 0) selectedMice = ["Crimson Ranger"];
