@@ -16,9 +16,12 @@
     --accent-strong: #A6630F;
     --accent-ink: #FFFFFF;
     --accent-soft: #F6E4C6;
-    --best: #3E7A46;
-    --best-bg: #E5F1E1;
-    --best-border: #BFDDB6;
+    --best: #C6960F;
+    --best-bg: #FFF7DE;
+    --best-border: #EFD48C;
+    --best-ink: #4A340A;
+    --gold-a: #FFE07A;
+    --gold-b: #D9A521;
     --danger: #AD4A31;
     --radius-lg: 18px;
     --radius-md: 12px;
@@ -42,9 +45,12 @@
       --accent-strong: #F0B968;
       --accent-ink: #1B1206;
       --accent-soft: #3A2C15;
-      --best: #7BCB86;
-      --best-bg: #1E3323;
-      --best-border: #33502F;
+      --best: #E8B84A;
+      --best-bg: #34280F;
+      --best-border: #5C4A1E;
+      --best-ink: #2A1D06;
+      --gold-a: #F6D27E;
+      --gold-b: #C79328;
       --danger: #E08669;
       color-scheme: dark;
     }
@@ -61,9 +67,12 @@
     --accent-strong: #F0B968;
     --accent-ink: #1B1206;
     --accent-soft: #3A2C15;
-    --best: #7BCB86;
-    --best-bg: #1E3323;
-    --best-border: #33502F;
+    --best: #E8B84A;
+    --best-bg: #34280F;
+    --best-border: #5C4A1E;
+    --best-ink: #2A1D06;
+    --gold-a: #F6D27E;
+    --gold-b: #C79328;
     --danger: #E08669;
     color-scheme: dark;
   }
@@ -401,16 +410,23 @@
   }
 
   .best-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
     font-size: 9px;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    background: var(--best);
-    color: var(--accent-ink);
-    padding: 1px 6px;
+    background: linear-gradient(155deg, var(--gold-a), var(--gold-b));
+    color: var(--best-ink);
+    padding: 2px 7px 2px 5px;
     border-radius: 999px;
     vertical-align: middle;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.55);
   }
+
+  .best-badge svg { width: 8px; height: 8px; flex-shrink: 0; }
 
   .weighted-ar {
     font-family: var(--font-mono);
@@ -474,11 +490,18 @@
 
   .mouse-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 
-  .mouse-section-header { margin-bottom: 10px; }
+  .mouse-section-header {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
   .mouse-section-header h3 {
     font-size: 17px;
     font-weight: 700;
+    flex: 1;
+    min-width: 0;
   }
 
   .mouse-section-header .group-line {
@@ -487,6 +510,35 @@
     font-weight: 500;
     color: var(--text-muted);
   }
+
+  .collapse-toggle {
+    all: unset;
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    color: var(--text-muted);
+  }
+
+  .collapse-toggle:hover { background: var(--surface-2); color: var(--text); }
+  .collapse-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .collapse-toggle svg { width: 15px; height: 15px; transition: transform 0.15s ease; }
+
+  .collapsed-count {
+    display: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .mouse-section.collapsed .collapse-toggle svg { transform: rotate(-90deg); }
+  .mouse-section.collapsed .result-list { display: none; }
+  .mouse-section.collapsed .mouse-section-header { margin-bottom: 0; }
+  .mouse-section.collapsed .collapsed-count { display: inline; }
 
   .attribution {
     margin-top: 28px;
@@ -586,6 +638,7 @@
   var rowLimit = 0;
   var bestOnly = false;
   var excludeSBPlus = false;
+  var collapsedMice = {};
   var activeTab = "bymouse";
   var activeSuggestionIndex = -1;
   var currentSuggestions = [];
@@ -851,7 +904,7 @@
             '<div class="location-line">' +
               "<span>" + escapeHtml(row.location) + "</span>" +
               (row.phase !== "-" ? '<span class="pill">' + escapeHtml(row.phase) + "</span>" : "") +
-              (isBest ? '<span class="best-badge">Best</span>' : "") +
+              (isBest ? '<span class="best-badge"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7L6 21l1.6-7L2.2 9.2l7.1-.6L12 2z"/></svg>Best</span>' : "") +
             "</div>" +
             '<div class="weighted-ar">' + row.weightedSum.toFixed(2) + "%" +
               (row.weightedSum.toFixed(2) !== row.rawSum.toFixed(2) ? '<span class="raw-ar">(raw ' + row.rawSum.toFixed(2) + "%)</span>" : "") +
@@ -922,10 +975,15 @@
       var groupLabel = g
         ? (g.subgroup ? escapeHtml(g.group) + " » " + escapeHtml(g.subgroup) : escapeHtml(g.group))
         : "Group unknown";
+      var isCollapsed = !!collapsedMice[mouse];
       return (
-        '<div class="mouse-section">' +
+        '<div class="mouse-section' + (isCollapsed ? " collapsed" : "") + '">' +
           '<div class="mouse-section-header">' +
+            '<button type="button" class="collapse-toggle" data-mouse="' + escapeHtml(mouse) + '" aria-label="' + (isCollapsed ? "Expand" : "Collapse") + " " + escapeHtml(mouse) + '">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+            "</button>" +
             "<h3>" + escapeHtml(mouse) + ' <span class="group-line">(' + groupLabel + ")</span></h3>" +
+            '<span class="collapsed-count">' + limited.length + (limited.length === 1 ? " result" : " results") + "</span>" +
           "</div>" +
           '<div class="result-list">' +
             limited.map(function (row, i) { return renderRowCard(row, i + 1, false); }).join("") +
@@ -952,6 +1010,16 @@
   chipsRow.addEventListener("click", function (e) {
     var btn = e.target.closest("button[data-remove]");
     if (btn) removeMouse(btn.dataset.remove);
+  });
+
+  bymousePanel.addEventListener("click", function (e) {
+    var btn = e.target.closest(".collapse-toggle");
+    if (!btn) return;
+    var mouse = btn.dataset.mouse;
+    collapsedMice[mouse] = !collapsedMice[mouse];
+    var section = btn.closest(".mouse-section");
+    section.classList.toggle("collapsed", collapsedMice[mouse]);
+    btn.setAttribute("aria-label", (collapsedMice[mouse] ? "Expand " : "Collapse ") + mouse);
   });
 
   function renderAll() {
