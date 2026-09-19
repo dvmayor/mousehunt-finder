@@ -831,8 +831,8 @@
 
   function renderRowCard(row, rank, showContributors) {
     var isBest = rank === 1;
-    var detailParts = ["<b>Bait:</b> " + escapeHtml(row.cheese)];
-    if (row.charm !== "-") detailParts.push("<b>Charm:</b> " + escapeHtml(row.charm));
+    var detailParts = ["Bait: <b>" + escapeHtml(row.cheese) + "</b>"];
+    if (row.charm !== "-") detailParts.push("Charm: <b>" + escapeHtml(row.charm) + "</b>");
     if (row.location !== "Event") {
       detailParts.push('<a class="cre-link" href="' + creLink(row) + '" target="_blank" rel="noopener">CRE ↗</a>');
     }
