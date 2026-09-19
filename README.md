@@ -1,4 +1,4 @@
-# Mouse Finder
+# Mousehunt Finder
 
 Search any MouseHunt mouse and see every location, cheese, and charm combination ranked by attraction rate, weighted by your own trap's Attraction bonus.
 

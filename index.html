@@ -1,4 +1,4 @@
-<title>Mouse Finder</title>
+<title>Mousehunt Finder</title>
 <meta name="description" content="Find the best location, cheese, and charm to attract any MouseHunt mouse, ranked by attraction rate.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -659,6 +659,20 @@
   .mouse-section.collapsed .mouse-section-header { margin-bottom: 0; }
   .mouse-section.collapsed .collapsed-count { display: inline; }
 
+  .toggle-options-btn {
+    all: unset;
+    cursor: pointer;
+    display: block;
+    margin-top: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+
+  .toggle-options-btn:hover { text-decoration: underline; }
+  .toggle-options-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mouse-section.collapsed .toggle-options-btn { display: none; }
+
   .attribution {
     margin-top: 28px;
     font-size: 12px;
@@ -697,7 +711,7 @@
     <circle cx="28" cy="24" r="1.8" fill="var(--accent-soft)"/>
   </svg>
   <div class="app-header-titles">
-    <h1>Mouse Finder</h1>
+    <h1>Mousehunt Finder</h1>
     <p>Search a mouse, see every location ranked by attraction rate.</p>
   </div>
   <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to dark mode">
@@ -814,6 +828,7 @@
   var standardCheeseOnly = false;
   var STANDARD_CHEESES = { "Brie": 1, "Brie String": 1, "Cheddar": 1, "Gouda": 1, "Marble": 1, "Marble String": 1, "Swiss": 1, "Swiss String": 1 };
   var collapsedMice = {};
+  var expandedMice = {};
   var mouseSortMode = "input";
   var aggregateSortMode = "input";
   var activeTab = "bymouse";
@@ -1305,12 +1320,20 @@
     } // "input" keeps selectedMice's own order
     var html = orderedMice.map(function (mouse) {
       var rows = computeRows([mouse]);
-      var limited = applyLimit(rows);
+      var isExpanded = !!expandedMice[mouse];
+      var limited = (bestOnly && !isExpanded) ? rows.slice(0, 1) : rows;
       var g = groupLabelFor(mouse);
       var groupLabel = g
         ? (g.subgroup ? escapeHtml(g.group) + " » " + escapeHtml(g.subgroup) : escapeHtml(g.group))
         : "Group unknown";
       var isCollapsed = !!collapsedMice[mouse];
+      var moreCount = rows.length - limited.length;
+      var toggleOptionsHtml = "";
+      if (bestOnly && rows.length > 1) {
+        toggleOptionsHtml = '<button type="button" class="toggle-options-btn" data-mouse="' + escapeHtml(mouse) + '">' +
+          (isExpanded ? "Show best only" : "Show " + moreCount + " more option" + (moreCount === 1 ? "" : "s")) +
+          "</button>";
+      }
       return (
         '<div class="mouse-section' + (isCollapsed ? " collapsed" : "") + '">' +
           '<div class="mouse-section-header">' +
@@ -1323,6 +1346,7 @@
           '<div class="result-list">' +
             limited.map(function (row, i) { return renderRowCard(row, i + 1, false, i === 0); }).join("") +
           "</div>" +
+          toggleOptionsHtml +
         "</div>"
       );
     }).join("");
@@ -1358,13 +1382,21 @@
   });
 
   bymousePanel.addEventListener("click", function (e) {
-    var btn = e.target.closest(".collapse-toggle");
-    if (!btn) return;
-    var mouse = btn.dataset.mouse;
-    collapsedMice[mouse] = !collapsedMice[mouse];
-    var section = btn.closest(".mouse-section");
-    section.classList.toggle("collapsed", collapsedMice[mouse]);
-    btn.setAttribute("aria-label", (collapsedMice[mouse] ? "Expand " : "Collapse ") + mouse);
+    var collapseBtn = e.target.closest(".collapse-toggle");
+    if (collapseBtn) {
+      var mouse = collapseBtn.dataset.mouse;
+      collapsedMice[mouse] = !collapsedMice[mouse];
+      var section = collapseBtn.closest(".mouse-section");
+      section.classList.toggle("collapsed", collapsedMice[mouse]);
+      collapseBtn.setAttribute("aria-label", (collapsedMice[mouse] ? "Expand " : "Collapse ") + mouse);
+      return;
+    }
+    var optionsBtn = e.target.closest(".toggle-options-btn");
+    if (optionsBtn) {
+      var m = optionsBtn.dataset.mouse;
+      expandedMice[m] = !expandedMice[m];
+      renderByMouse();
+    }
   });
 
   function renderAll() {
