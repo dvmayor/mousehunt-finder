@@ -1073,7 +1073,7 @@
               if (!rows[key]) rows[key] = { location: location, phase: phase, cheese: cheeseKey, charm: charm, rawSum: 0, weightedSum: 0, contributors: [] };
               rows[key].rawSum += raw;
               rows[key].weightedSum += weighted;
-              rows[key].contributors.push({ mouse: mouse, raw: raw });
+              rows[key].contributors.push({ mouse: mouse, raw: raw, weighted: weighted });
             });
           });
         });
@@ -1099,11 +1099,14 @@
       : "";
     var contributorsHtml = "";
     if (showContributors && row.contributors.length > 0) {
-      var sorted = row.contributors.slice().sort(function (a, b) { return b.raw - a.raw; });
-      var mouseLabel = sorted.length > 1 ? "Mice" : "Mouse";
-      contributorsHtml = '<div class="contributors">' + mouseLabel + ": <b>" +
-        sorted.map(function (c) { return escapeHtml(c.mouse); }).join(", ") +
-        "</b></div>";
+      var sorted = row.contributors.slice().sort(function (a, b) { return b.weighted - a.weighted; });
+      if (sorted.length > 1) {
+        contributorsHtml = '<div class="contributors">Mice: ' +
+          sorted.map(function (c) { return "<b>" + escapeHtml(c.mouse) + " (" + c.weighted.toFixed(2) + "%)</b>"; }).join(", ") +
+          "</div>";
+      } else {
+        contributorsHtml = '<div class="contributors">Mouse: <b>' + escapeHtml(sorted[0].mouse) + "</b></div>";
+      }
     }
     return (
       '<div class="result-card' + (isBest ? " best" : "") + '">' +
