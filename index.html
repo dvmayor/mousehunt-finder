@@ -843,6 +843,7 @@
   var miceCountRow = document.getElementById("miceCountRow");
   var miceCount = document.getElementById("miceCount");
   var mouseNameLookup = {};
+  var maxMouseNameWords = 1;
   var indexToMouse = [];
   var mouseToIndex = {};
   var copyLinkBtn = document.getElementById("copyLinkBtn");
@@ -985,6 +986,17 @@
     pasteFeedback.hidden = false;
   }
 
+  function applyMouseList(matched, unmatched) {
+    var newOnes = matched.filter(function (m) { return selectedMice.indexOf(m) === -1; });
+    if (newOnes.length) selectedMice = newOnes.concat(selectedMice);
+
+    mouseInput.value = "";
+    suggestionsList.hidden = true;
+    showPasteFeedback(newOnes.length, matched.length, unmatched || []);
+    persistState();
+    renderAll();
+  }
+
   function addMultipleMice(text) {
     var lines = text.split(/\r?\n/);
     var matched = [];
@@ -1000,24 +1012,55 @@
         unmatched.push(line);
       }
     });
+    applyMouseList(matched, unmatched);
+  }
 
-    var newOnes = matched.filter(function (m) { return selectedMice.indexOf(m) === -1; });
-    if (newOnes.length) selectedMice = newOnes.concat(selectedMice);
-
-    mouseInput.value = "";
-    suggestionsList.hidden = true;
-    showPasteFeedback(newOnes.length, matched.length, unmatched);
-    persistState();
-    renderAll();
+  // Some mobile browsers flatten a copied multi-line checklist into one
+  // space-joined line. Greedily match known mouse names (longest first) out
+  // of that blob, left to right, skipping anything that isn't recognized.
+  function extractMouseNamesFromBlob(text) {
+    var words = text.replace(/’/g, "'").trim().split(/\s+/);
+    var found = [];
+    var seen = {};
+    var i = 0;
+    while (i < words.length) {
+      var matchedSpan = 0;
+      var maxSpan = Math.min(maxMouseNameWords, words.length - i);
+      for (var span = maxSpan; span >= 1; span--) {
+        var candidate = words.slice(i, i + span).join(" ");
+        var resolved = resolveMouseName(candidate);
+        if (resolved) {
+          if (!seen[resolved]) { seen[resolved] = true; found.push(resolved); }
+          matchedSpan = span;
+          break;
+        }
+      }
+      i += matchedSpan > 0 ? matchedSpan : 1;
+    }
+    return found;
   }
 
   mouseInput.addEventListener("input", function () { renderSuggestions(mouseInput.value); });
 
   mouseInput.addEventListener("paste", function (e) {
     var text = (e.clipboardData || window.clipboardData).getData("text");
-    if (!text || text.indexOf("\n") === -1) return; // single-item paste: let normal search handle it
-    e.preventDefault();
-    addMultipleMice(text);
+    if (!text) return;
+    if (text.indexOf("\n") > -1) {
+      e.preventDefault();
+      addMultipleMice(text);
+      return;
+    }
+    // No newline: could still be a mobile-flattened list. Only bother trying
+    // the fuzzy extraction when it doesn't already look like a single search term.
+    var trimmed = text.trim();
+    var wordCount = trimmed.split(/\s+/).length;
+    if (wordCount > 3 && !resolveMouseName(trimmed)) {
+      var extracted = extractMouseNamesFromBlob(trimmed);
+      if (extracted.length > 0) {
+        e.preventDefault();
+        applyMouseList(extracted, []);
+      }
+    }
   });
 
   mouseInput.addEventListener("keydown", function (e) {
@@ -1591,7 +1634,11 @@
     populations = results[0];
     cheeseBaseline = results[1];
     mouseGroups = results[2];
-    Object.keys(populations).forEach(function (n) { mouseNameLookup[n.toLowerCase()] = n; });
+    Object.keys(populations).forEach(function (n) {
+      mouseNameLookup[n.toLowerCase()] = n;
+      var wordCount = n.split(/\s+/).length;
+      if (wordCount > maxMouseNameWords) maxMouseNameWords = wordCount;
+    });
     indexToMouse = Object.keys(populations).sort();
     indexToMouse.forEach(function (n, i) { mouseToIndex[n] = i; });
 
