@@ -224,6 +224,120 @@
   .tutorial-card.collapsed .tutorial-body { display: none; }
   .tutorial-card.collapsed .tutorial-chevron { transform: rotate(-90deg); }
 
+  .tutorial-link {
+    all: unset;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--accent-strong);
+    white-space: nowrap;
+  }
+
+  .tutorial-link:hover { text-decoration: underline; }
+  .tutorial-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+  .lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 15, 5, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    z-index: 100;
+  }
+
+  .lightbox-overlay[hidden] { display: none; }
+
+  .lightbox {
+    position: relative;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow);
+  }
+
+  .lightbox-close {
+    all: unset;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--text-muted);
+  }
+
+  .lightbox-close:hover { background: var(--surface-2); color: var(--text); }
+  .lightbox-close svg { width: 18px; height: 18px; }
+
+  .lightbox-image-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+  }
+
+  .lightbox-image-wrap img {
+    display: block;
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+  }
+
+  .lightbox-caption {
+    margin: 12px 2px 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    min-height: 1.4em;
+  }
+
+  .lightbox-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 12px;
+  }
+
+  .lightbox-nav-btn {
+    all: unset;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .lightbox-nav-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .lightbox-nav-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .lightbox-nav-btn svg { width: 18px; height: 18px; }
+
+  .lightbox-counter {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-width: 34px;
+    text-align: center;
+  }
+
   .mice-count-row {
     display: flex;
     align-items: center;
@@ -795,7 +909,28 @@
     </div>
     <div class="tutorial-step">
       <span class="tutorial-num">2</span>
-      <p><b>Or paste a whole list at once.</b> Copy a mouse list from anywhere, like a treasure map's "missing mice" goals in MouseHunt, and paste it straight into the search box. One per line, comma-separated, or however it copies, it's parsed automatically.</p>
+      <p><b>Or paste a whole list at once.</b> Copy a mouse list from anywhere, like a treasure map's "missing mice" goals in MouseHunt, and paste it straight into the search box. One per line, comma-separated, or however it copies, it's parsed automatically. <button type="button" class="tutorial-link" id="tutorialExampleBtn">See an example ↗</button></p>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox-overlay" id="lightboxOverlay" hidden>
+  <div class="lightbox" role="dialog" aria-modal="true" aria-label="Paste a list example">
+    <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+    </button>
+    <div class="lightbox-image-wrap">
+      <img id="lightboxImage" alt="">
+    </div>
+    <p class="lightbox-caption" id="lightboxCaption"></p>
+    <div class="lightbox-nav">
+      <button type="button" class="lightbox-nav-btn" id="lightboxPrev" aria-label="Previous">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <span class="lightbox-counter" id="lightboxCounter"></span>
+      <button type="button" class="lightbox-nav-btn" id="lightboxNext" aria-label="Next">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
     </div>
   </div>
 </div>
@@ -914,6 +1049,61 @@
     tutorialCard.classList.toggle("collapsed", tutorialCollapsed);
     tutorialToggle.setAttribute("aria-expanded", tutorialCollapsed ? "false" : "true");
     safeStorageSet("mf_tutorial_collapsed", tutorialCollapsed ? "1" : "0");
+  });
+
+  // ---------- Example lightbox ----------
+
+  var LIGHTBOX_SLIDES = [
+    { src: "images/tutorial-1.png", caption: "In MouseHunt, highlight and copy your missing mice list from a treasure map (or anywhere else)." },
+    { src: "images/tutorial-2.png", caption: "Paste it straight into the search box here." },
+    { src: "images/tutorial-3.png", caption: "Every mouse in the list gets added automatically." },
+    { src: "images/tutorial-4.png", caption: "See the best location, cheese, and charm for each one." }
+  ];
+
+  var tutorialExampleBtn = document.getElementById("tutorialExampleBtn");
+  var lightboxOverlay = document.getElementById("lightboxOverlay");
+  var lightboxImage = document.getElementById("lightboxImage");
+  var lightboxCaption = document.getElementById("lightboxCaption");
+  var lightboxCounter = document.getElementById("lightboxCounter");
+  var lightboxPrev = document.getElementById("lightboxPrev");
+  var lightboxNext = document.getElementById("lightboxNext");
+  var lightboxClose = document.getElementById("lightboxClose");
+  var lightboxIndex = 0;
+
+  function showLightboxSlide(index) {
+    lightboxIndex = (index + LIGHTBOX_SLIDES.length) % LIGHTBOX_SLIDES.length;
+    var slide = LIGHTBOX_SLIDES[lightboxIndex];
+    lightboxImage.src = slide.src;
+    lightboxImage.alt = slide.caption;
+    lightboxCaption.textContent = slide.caption;
+    lightboxCounter.textContent = (lightboxIndex + 1) + " / " + LIGHTBOX_SLIDES.length;
+  }
+
+  function openLightbox() {
+    showLightboxSlide(0);
+    lightboxOverlay.hidden = false;
+    lightboxClose.focus();
+  }
+
+  function closeLightbox() {
+    lightboxOverlay.hidden = true;
+    tutorialExampleBtn.focus();
+  }
+
+  tutorialExampleBtn.addEventListener("click", openLightbox);
+  lightboxClose.addEventListener("click", closeLightbox);
+  lightboxPrev.addEventListener("click", function () { showLightboxSlide(lightboxIndex - 1); });
+  lightboxNext.addEventListener("click", function () { showLightboxSlide(lightboxIndex + 1); });
+
+  lightboxOverlay.addEventListener("click", function (e) {
+    if (e.target === lightboxOverlay) closeLightbox();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (lightboxOverlay.hidden) return;
+    if (e.key === "Escape") closeLightbox();
+    else if (e.key === "ArrowLeft") showLightboxSlide(lightboxIndex - 1);
+    else if (e.key === "ArrowRight") showLightboxSlide(lightboxIndex + 1);
   });
 
   var populations = null, cheeseBaseline = null, mouseGroups = null;
