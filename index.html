@@ -161,6 +161,69 @@
     gap: 10px;
   }
 
+  .tutorial-card {
+    background: var(--accent-soft);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 14px;
+  }
+
+  .tutorial-toggle {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14.5px;
+    color: var(--accent-strong);
+  }
+
+  .tutorial-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tutorial-chevron { width: 16px; height: 16px; flex-shrink: 0; transition: transform 0.15s ease; }
+
+  .tutorial-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .tutorial-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .tutorial-num {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 11.5px;
+    display: grid;
+    place-items: center;
+    margin-top: 1px;
+  }
+
+  .tutorial-step p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .tutorial-step b { font-weight: 700; }
+
+  .tutorial-card.collapsed .tutorial-body { display: none; }
+  .tutorial-card.collapsed .tutorial-chevron { transform: rotate(-90deg); }
+
   .mice-count-row {
     display: flex;
     align-items: center;
@@ -720,6 +783,23 @@
   </button>
 </div>
 
+<div class="tutorial-card" id="tutorialCard">
+  <button type="button" class="tutorial-toggle" id="tutorialToggle" aria-expanded="true">
+    <svg class="tutorial-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    <span>How to add mice</span>
+  </button>
+  <div class="tutorial-body" id="tutorialBody">
+    <div class="tutorial-step">
+      <span class="tutorial-num">1</span>
+      <p><b>Type a name</b> in the search box below and pick it from the dropdown that appears.</p>
+    </div>
+    <div class="tutorial-step">
+      <span class="tutorial-num">2</span>
+      <p><b>Or paste a whole list at once.</b> Copy a mouse list from anywhere, like a treasure map's "missing mice" goals in MouseHunt, and paste it straight into the search box. One per line, comma-separated, or however it copies, it's parsed automatically.</p>
+    </div>
+  </div>
+</div>
+
 <div class="card search-card">
   <div class="search-label-row">
     <label class="field-label" for="mouseInput">Add a mouse</label>
@@ -818,6 +898,22 @@
   themeToggle.addEventListener("click", function () {
     var current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
     setTheme(current === "dark" ? "light" : "dark");
+  });
+
+  // ---------- Tutorial card ----------
+
+  var tutorialCard = document.getElementById("tutorialCard");
+  var tutorialToggle = document.getElementById("tutorialToggle");
+  var tutorialCollapsed = false;
+  try { tutorialCollapsed = localStorage.getItem("mf_tutorial_collapsed") === "1"; } catch (e) { /* ignore */ }
+  tutorialCard.classList.toggle("collapsed", tutorialCollapsed);
+  tutorialToggle.setAttribute("aria-expanded", tutorialCollapsed ? "false" : "true");
+
+  tutorialToggle.addEventListener("click", function () {
+    tutorialCollapsed = !tutorialCollapsed;
+    tutorialCard.classList.toggle("collapsed", tutorialCollapsed);
+    tutorialToggle.setAttribute("aria-expanded", tutorialCollapsed ? "false" : "true");
+    safeStorageSet("mf_tutorial_collapsed", tutorialCollapsed ? "1" : "0");
   });
 
   var populations = null, cheeseBaseline = null, mouseGroups = null;
