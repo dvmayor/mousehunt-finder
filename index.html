@@ -1003,14 +1003,18 @@
     var unmatched = [];
     var seen = {};
     lines.forEach(function (rawLine) {
-      var line = rawLine.trim();
-      if (!line || isHeaderLine(line)) return;
-      var resolved = resolveMouseName(line);
-      if (resolved) {
-        if (!seen[resolved]) { seen[resolved] = true; matched.push(resolved); }
-      } else {
-        unmatched.push(line);
-      }
+      // A line may itself be a comma-separated list (or the whole paste may
+      // be one comma-separated line with no newlines at all).
+      rawLine.split(",").forEach(function (rawSegment) {
+        var line = rawSegment.trim();
+        if (!line || isHeaderLine(line)) return;
+        var resolved = resolveMouseName(line);
+        if (resolved) {
+          if (!seen[resolved]) { seen[resolved] = true; matched.push(resolved); }
+        } else {
+          unmatched.push(line);
+        }
+      });
     });
     applyMouseList(matched, unmatched);
   }
@@ -1045,7 +1049,7 @@
   mouseInput.addEventListener("paste", function (e) {
     var text = (e.clipboardData || window.clipboardData).getData("text");
     if (!text) return;
-    if (text.indexOf("\n") > -1) {
+    if (text.indexOf("\n") > -1 || text.indexOf(",") > -1) {
       e.preventDefault();
       addMultipleMice(text);
       return;
