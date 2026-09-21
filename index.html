@@ -1330,27 +1330,41 @@
     return found;
   }
 
-  mouseInput.addEventListener("input", function () { renderSuggestions(mouseInput.value); });
-
-  mouseInput.addEventListener("paste", function (e) {
-    var text = (e.clipboardData || window.clipboardData).getData("text");
-    if (!text) return;
+  // Single source of truth for "is this text actually a mouse list, not a
+  // single search term?" Used both at paste time (fast path, no flash of
+  // raw text) and as a fallback on the resulting input value (catches
+  // mobile browsers that don't hand clipboardData to the paste event, so
+  // the OS pastes natively and we have to catch it after the fact).
+  function tryBulkAdd(text) {
+    if (!text) return false;
     if (text.indexOf("\n") > -1 || text.indexOf(",") > -1) {
-      e.preventDefault();
       addMultipleMice(text);
-      return;
+      return true;
     }
-    // No newline: could still be a mobile-flattened list. Only bother trying
-    // the fuzzy extraction when it doesn't already look like a single search term.
     var trimmed = text.trim();
-    var wordCount = trimmed.split(/\s+/).length;
+    var wordCount = trimmed ? trimmed.split(/\s+/).length : 0;
     if (wordCount > 3 && !resolveMouseName(trimmed)) {
       var extracted = extractMouseNamesFromBlob(trimmed);
       if (extracted.length > 0) {
-        e.preventDefault();
         applyMouseList(extracted, []);
+        return true;
       }
     }
+    return false;
+  }
+
+  mouseInput.addEventListener("input", function () {
+    if (tryBulkAdd(mouseInput.value)) return;
+    renderSuggestions(mouseInput.value);
+  });
+
+  mouseInput.addEventListener("paste", function (e) {
+    var text = (e.clipboardData || window.clipboardData).getData("text");
+    if (text && tryBulkAdd(text)) {
+      e.preventDefault();
+    }
+    // If clipboardData was empty/blocked, do nothing here: let the native
+    // paste happen, the input handler above will catch it once it lands.
   });
 
   mouseInput.addEventListener("keydown", function (e) {
