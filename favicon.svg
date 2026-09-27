@@ -1,26 +1,26 @@
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="24" cy="27" r="18" fill="#D2D2D2" stroke="#7A4A2E" stroke-width="3.2"/>
-  <circle cx="76" cy="27" r="18" fill="#D2D2D2" stroke="#7A4A2E" stroke-width="3.2"/>
-  <circle cx="24" cy="29" r="9.5" fill="#F5B4C4"/>
-  <circle cx="76" cy="29" r="9.5" fill="#F5B4C4"/>
+  <circle cx="24" cy="27" r="18" fill="#E3B778" stroke="#5A3620" stroke-width="3.2"/>
+  <circle cx="76" cy="27" r="18" fill="#E3B778" stroke="#5A3620" stroke-width="3.2"/>
+  <circle cx="24" cy="29" r="9.5" fill="#EFA98F"/>
+  <circle cx="76" cy="29" r="9.5" fill="#EFA98F"/>
 
   <clipPath id="headClip">
     <rect x="13" y="27" width="74" height="64" rx="30" ry="30"/>
   </clipPath>
-  <rect x="13" y="27" width="74" height="64" rx="30" ry="30" fill="#BABABA"/>
-  <path d="M13 27 L87 27 L87 65 Q68 58 50 63 Q32 68 13 62 Z" fill="#D2D2D2" clip-path="url(#headClip)"/>
-  <rect x="13" y="27" width="74" height="64" rx="30" ry="30" fill="none" stroke="#7A4A2E" stroke-width="3.2"/>
+  <rect x="13" y="27" width="74" height="64" rx="30" ry="30" fill="#C77A1E"/>
+  <path d="M13 27 L87 27 L87 65 Q68 58 50 63 Q32 68 13 62 Z" fill="#E3B778" clip-path="url(#headClip)"/>
+  <rect x="13" y="27" width="74" height="64" rx="30" ry="30" fill="none" stroke="#5A3620" stroke-width="3.2"/>
 
-  <circle cx="38" cy="55" r="6.2" fill="#432A19"/>
-  <circle cx="62" cy="55" r="6.2" fill="#432A19"/>
+  <circle cx="38" cy="55" r="6.2" fill="#3A2313"/>
+  <circle cx="62" cy="55" r="6.2" fill="#3A2313"/>
 
-  <ellipse cx="24" cy="66" rx="7" ry="5" fill="#F5B4C4" opacity="0.85"/>
-  <ellipse cx="76" cy="66" rx="7" ry="5" fill="#F5B4C4" opacity="0.85"/>
+  <ellipse cx="24" cy="66" rx="7" ry="5" fill="#EFA98F" opacity="0.85"/>
+  <ellipse cx="76" cy="66" rx="7" ry="5" fill="#EFA98F" opacity="0.85"/>
 
-  <path d="M50 61.5c-3 0-5.3 1.8-5.3 3.9 0 2.4 2.8 4.3 5.3 4.3s5.3-1.9 5.3-4.3c0-2.1-2.3-3.9-5.3-3.9z" fill="#F08CA6" stroke="#7A4A2E" stroke-width="1.5"/>
-  <path d="M50 69.7v2.6M50 72.3c-2.5 2.5-5.6 2.9-7.7 1.5M50 72.3c2.5 2.5 5.6 2.9 7.7 1.5" stroke="#7A4A2E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M50 61.5c-3 0-5.3 1.8-5.3 3.9 0 2.4 2.8 4.3 5.3 4.3s5.3-1.9 5.3-4.3c0-2.1-2.3-3.9-5.3-3.9z" fill="#E38A6C" stroke="#5A3620" stroke-width="1.5"/>
+  <path d="M50 69.7v2.6M50 72.3c-2.5 2.5-5.6 2.9-7.7 1.5M50 72.3c2.5 2.5 5.6 2.9 7.7 1.5" stroke="#5A3620" stroke-width="2" fill="none" stroke-linecap="round"/>
 
-  <g stroke="#7A4A2E" stroke-width="1.8" stroke-linecap="round">
+  <g stroke="#5A3620" stroke-width="1.8" stroke-linecap="round">
     <path d="M31 61 L9 55"/>
     <path d="M32 67 L8 67"/>
     <path d="M31 73 L10 79"/>
