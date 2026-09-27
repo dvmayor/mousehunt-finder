@@ -1492,21 +1492,21 @@
 
   var standardOptionCache = {};
 
-  // True when at least one of this mouse's cheeses is a plain Shoppe/gold cheese.
-  function mouseHasStandardOption(mouse) {
-    if (standardOptionCache[mouse] !== undefined) return standardOptionCache[mouse];
-    var locs = populations[mouse];
+  // True when at least one cheese for this mouse AT THIS LOCATION is a plain Shoppe/gold cheese.
+  // Scoped per-location (not per-mouse) so a location whose only bait is a special/crafted
+  // cheese (e.g. Lagoon's Gnarled/Wicked Gnarly) still shows up, the same way SB+-only mice
+  // still show SB+ when "Exclude SB+" is on.
+  function locationHasStandardOption(mouse, location) {
+    var cacheKey = mouse + "~~" + location;
+    if (standardOptionCache[cacheKey] !== undefined) return standardOptionCache[cacheKey];
+    var phases = populations[mouse][location];
     var hasStandard = false;
-    if (locs) {
-      Object.keys(locs).forEach(function (location) {
-        Object.keys(locs[location]).forEach(function (phase) {
-          Object.keys(locs[location][phase]).forEach(function (cheese) {
-            if (cheese.split("/").some(function (c) { return STANDARD_CHEESES[c]; })) hasStandard = true;
-          });
-        });
+    Object.keys(phases).forEach(function (phase) {
+      Object.keys(phases[phase]).forEach(function (cheese) {
+        if (cheese.split("/").some(function (c) { return STANDARD_CHEESES[c]; })) hasStandard = true;
       });
-    }
-    standardOptionCache[mouse] = hasStandard;
+    });
+    standardOptionCache[cacheKey] = hasStandard;
     return hasStandard;
   }
 
@@ -1516,8 +1516,8 @@
       var locs = populations[mouse];
       if (!locs) return;
       var skipSBPlus = excludeSBPlus && !mouseIsSBPlusOnly(mouse);
-      var applyStandardFilter = standardCheeseOnly && mouseHasStandardOption(mouse);
       Object.keys(locs).forEach(function (location) {
+        var applyStandardFilter = standardCheeseOnly && locationHasStandardOption(mouse, location);
         Object.keys(locs[location]).forEach(function (phase) {
           Object.keys(locs[location][phase]).forEach(function (cheese) {
             if (skipSBPlus && cheese === "SB+") return;
