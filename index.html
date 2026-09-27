@@ -1472,21 +1472,21 @@
 
   var sbPlusOnlyCache = {};
 
-  // True when SB+ is the ONLY cheese that ever attracts this mouse, anywhere.
-  function mouseIsSBPlusOnly(mouse) {
-    if (sbPlusOnlyCache[mouse] !== undefined) return sbPlusOnlyCache[mouse];
-    var locs = populations[mouse];
+  // True when SB+ is the ONLY cheese that ever attracts this mouse AT THIS LOCATION.
+  // Scoped per-location (not per-mouse) so a location whose only bait is SB+ still shows
+  // up even if the mouse has a non-SB+ option at some other (possibly rotating/limited-time)
+  // location, e.g. Ronza's Traveling Shoppe.
+  function locationIsSBPlusOnly(mouse, location) {
+    var cacheKey = mouse + "~~" + location;
+    if (sbPlusOnlyCache[cacheKey] !== undefined) return sbPlusOnlyCache[cacheKey];
+    var phases = populations[mouse][location];
     var onlySBPlus = true;
-    if (locs) {
-      Object.keys(locs).forEach(function (location) {
-        Object.keys(locs[location]).forEach(function (phase) {
-          Object.keys(locs[location][phase]).forEach(function (cheese) {
-            if (cheese !== "SB+") onlySBPlus = false;
-          });
-        });
+    Object.keys(phases).forEach(function (phase) {
+      Object.keys(phases[phase]).forEach(function (cheese) {
+        if (cheese !== "SB+") onlySBPlus = false;
       });
-    }
-    sbPlusOnlyCache[mouse] = onlySBPlus;
+    });
+    sbPlusOnlyCache[cacheKey] = onlySBPlus;
     return onlySBPlus;
   }
 
@@ -1515,8 +1515,8 @@
     mice.forEach(function (mouse) {
       var locs = populations[mouse];
       if (!locs) return;
-      var skipSBPlus = excludeSBPlus && !mouseIsSBPlusOnly(mouse);
       Object.keys(locs).forEach(function (location) {
+        var skipSBPlus = excludeSBPlus && !locationIsSBPlusOnly(mouse, location);
         var applyStandardFilter = standardCheeseOnly && locationHasStandardOption(mouse, location);
         Object.keys(locs[location]).forEach(function (phase) {
           Object.keys(locs[location][phase]).forEach(function (cheese) {
