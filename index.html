@@ -459,6 +459,12 @@
     font-weight: 500;
   }
 
+  .chip .chip-group {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
   .chip button {
     all: unset;
     cursor: pointer;
@@ -1698,8 +1704,11 @@
 
   function renderChips() {
     chipsRow.innerHTML = selectedMice.map(function (mouse) {
+      var g = groupLabelFor(mouse);
+      var sub = g ? (g.subgroup || g.group) : "";
       return (
         '<span class="chip">' + escapeHtml(mouse) +
+          (sub ? '<span class="chip-group">· ' + escapeHtml(sub) + "</span>" : "") +
           '<button type="button" aria-label="Remove ' + escapeHtml(mouse) + '" data-remove="' + escapeHtml(mouse) + '">×</button>' +
         "</span>"
       );
