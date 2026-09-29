@@ -1385,13 +1385,58 @@
     renderSuggestions(mouseInput.value);
   });
 
-  mouseInput.addEventListener("paste", function (e) {
-    var text = (e.clipboardData || window.clipboardData).getData("text");
-    if (text && tryBulkAdd(text)) {
-      e.preventDefault();
+  // Some sources (note apps, in-game overlays, share sheets) only populate
+  // the HTML clipboard flavor, leaving text/plain empty or truncated on
+  // Android Chrome. Fall back to letting the browser's own HTML parser turn
+  // that markup into text, since it correctly turns <br>/<li>/<p> etc. into
+  // line breaks instead of losing the list structure entirely.
+  function clipboardPlainText(clipboardData) {
+    var text = clipboardData.getData("text/plain") || clipboardData.getData("text");
+    if (text) return text;
+    var html = clipboardData.getData("text/html");
+    if (html) {
+      var div = document.createElement("div");
+      div.innerHTML = html;
+      return div.innerText || div.textContent || "";
     }
-    // If clipboardData was empty/blocked, do nothing here: let the native
-    // paste happen, the input handler above will catch it once it lands.
+    return "";
+  }
+
+  mouseInput.addEventListener("paste", function (e) {
+    var cd = e.clipboardData || window.clipboardData;
+    if (!cd) return;
+
+    var text = clipboardPlainText(cd);
+    if (text) {
+      if (tryBulkAdd(text)) e.preventDefault();
+      return;
+    }
+
+    // getData() came back empty. If the clipboard also carries a non-text
+    // item (e.g. an image bundled alongside the copied text, which some
+    // Android share sheets/overlays do), some mobile browsers only expose
+    // the text through the async DataTransferItem.getAsString() API rather
+    // than the synchronous getData() call above. Pull it from there instead
+    // of letting the browser try (and typically fail) to paste the image.
+    var items = cd.items;
+    if (items && items.length) {
+      var hasNonText = false;
+      var textItem = null;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].kind === "string" && items[i].type.indexOf("text/") === 0) {
+          if (!textItem) textItem = items[i];
+        } else {
+          hasNonText = true;
+        }
+      }
+      if (hasNonText && textItem) {
+        e.preventDefault();
+        textItem.getAsString(function (str) { tryBulkAdd(str); });
+        return;
+      }
+    }
+    // Otherwise do nothing here: let the native paste happen, the input
+    // handler above will catch it once it lands.
   });
 
   mouseInput.addEventListener("keydown", function (e) {
