@@ -14,21 +14,21 @@
     <path d="M50 16 C27 16 13 33 13 54 C13 76 28 93 50 93 C72 93 87 76 87 54 C87 33 73 16 50 16 Z"/>
   </clipPath>
   <path d="M50 16 C27 16 13 33 13 54 C13 76 28 93 50 93 C72 93 87 76 87 54 C87 33 73 16 50 16 Z" fill="#CDA97E"/>
-  <path d="M50 46 C38 48 30 58 30 72 C30 85 38 93 50 93 C62 93 70 85 70 72 C70 58 62 48 50 46 Z" fill="#F6EEDD" clip-path="url(#headClip)"/>
+  <path d="M50 66 C64 66 76 74 76 82 C76 90 64 93 50 93 C36 93 24 90 24 82 C24 74 36 66 50 66 Z" fill="#F6EEDD" clip-path="url(#headClip)"/>
   <path d="M50 16 C27 16 13 33 13 54 C13 76 28 93 50 93 C72 93 87 76 87 54 C87 33 73 16 50 16 Z" fill="none" stroke="#5B3A22" stroke-width="3.2"/>
 
   <path d="M46 18 C46 10 50 6 53 9 C55 11 53 14 50 16" fill="#CDA97E" stroke="#5B3A22" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <circle cx="36" cy="58" r="10.5" fill="#2A1B10"/>
-  <circle cx="64" cy="58" r="10.5" fill="#2A1B10"/>
-  <circle cx="32" cy="53.5" r="3.2" fill="#FFFFFF"/>
-  <circle cx="39" cy="62" r="1.6" fill="#FFFFFF"/>
-  <circle cx="60" cy="53.5" r="3.2" fill="#FFFFFF"/>
-  <circle cx="67" cy="62" r="1.6" fill="#FFFFFF"/>
+  <circle cx="36" cy="56" r="10" fill="#2A1B10"/>
+  <circle cx="64" cy="56" r="10" fill="#2A1B10"/>
+  <circle cx="32.2" cy="51.8" r="3" fill="#FFFFFF"/>
+  <circle cx="39" cy="60" r="1.5" fill="#FFFFFF"/>
+  <circle cx="60.2" cy="51.8" r="3" fill="#FFFFFF"/>
+  <circle cx="67" cy="60" r="1.5" fill="#FFFFFF"/>
 
-  <ellipse cx="21" cy="70" rx="7.5" ry="5.5" fill="#F0A89E" opacity="0.9"/>
-  <ellipse cx="79" cy="70" rx="7.5" ry="5.5" fill="#F0A89E" opacity="0.9"/>
+  <ellipse cx="22" cy="72" rx="7.5" ry="5.5" fill="#F0A89E" opacity="0.9"/>
+  <ellipse cx="78" cy="72" rx="7.5" ry="5.5" fill="#F0A89E" opacity="0.9"/>
 
-  <path d="M50 66c-2.6 0-4.6 1.5-4.6 3.3 0 2 2.3 3.6 4.6 3.6s4.6-1.6 4.6-3.6c0-1.8-2-3.3-4.6-3.3z" fill="#2A1B10"/>
-  <path d="M50 73v2M50 75c-2.2 2.2-4.8 2.5-6.6 1.3M50 75c2.2 2.2 4.8 2.5 6.6 1.3" stroke="#5B3A22" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M50 70c-2.3 0-4.1 1.3-4.1 3 0 1.8 2 3.2 4.1 3.2s4.1-1.4 4.1-3.2c0-1.7-1.8-3-4.1-3z" fill="#2A1B10"/>
+  <path d="M50 76.2v1.3M50 77.5c-2 2-4.4 2.3-6 1.1M50 77.5c2 2 4.4 2.3 6 1.1" stroke="#5B3A22" stroke-width="1.8" fill="none" stroke-linecap="round"/>
 </svg>
