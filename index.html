@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mousehunt Finder</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LK57VHKLVN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-LK57VHKLVN');
+</script>
 <meta name="description" content="Find the best location, cheese, and charm to attract any MouseHunt mouse, ranked by attraction rate.">
 <link rel="canonical" href="https://mousehunt-finder.davidreuelvillamayor.com/">
 
@@ -769,6 +776,17 @@
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
+  }
+
+  .limited-tag {
+    font-size: 10.5px;
+    line-height: 1.5;
+    padding: 1px 7px;
+    border-radius: 999px;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    font-weight: 600;
+    white-space: nowrap;
   }
 
   .detail-line {
@@ -1616,6 +1634,20 @@
     return Object.keys(rows).map(function (k) { return rows[k]; }).sort(function (a, b) { return b.weightedSum - a.weightedSum; });
   }
 
+  var LIMITED_LOCATIONS = { "Ronza's Traveling Shoppe": 1 };
+
+  function isLimitedRow(row) {
+    return !!LIMITED_LOCATIONS[row.location];
+  }
+
+  // Rotating-shop rows stay listed but never count as the best pick.
+  function bestRowOf(rows) {
+    for (var i = 0; i < rows.length; i++) {
+      if (!isLimitedRow(rows[i])) return rows[i];
+    }
+    return null;
+  }
+
   function creLink(row) {
     var params = "location=" + encodeURIComponent(row.location);
     if (row.phase !== "-") params += "&phase=" + encodeURIComponent(row.phase);
@@ -1650,6 +1682,7 @@
             '<div class="location-line">' +
               "<span>" + escapeHtml(row.location) + "</span>" +
               (row.phase !== "-" ? '<span class="pill">' + escapeHtml(row.phase) + "</span>" : "") +
+              (isLimitedRow(row) ? '<span class="limited-tag">Limited time</span>' : "") +
               (isBest ? '<span class="best-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7L6 21l1.6-7L2.2 9.2l7.1-.6L12 2z"/></svg>Best</span>' : "") +
             "</div>" +
             '<div class="weighted-ar">' + row.weightedSum.toFixed(2) + "%" +
@@ -1683,7 +1716,7 @@
     mice.forEach(function (mouse) {
       var rows = computeRows([mouse]);
       if (rows.length === 0) return;
-      var top = rows[0];
+      var top = bestRowOf(rows) || rows[0];
       var key = [top.location, top.phase, top.cheese, top.charm].join("~~");
       if (!bestByKey[key]) {
         bestByKey[key] = { location: top.location, phase: top.phase, cheese: top.cheese, charm: top.charm, rawSum: 0, weightedSum: 0, contributors: [] };
@@ -1701,7 +1734,7 @@
     // Best Locations always shows each mouse's single top pick, never its full list.
     // computeAggregateBestOnly already returns these sorted by attraction rate descending.
     var limited = computeAggregateBestOnly(selectedMice);
-    var trueBest = limited[0];
+    var trueBest = bestRowOf(limited);
     var displayRows = limited.slice();
     if (aggregateSortMode === "alpha") {
       displayRows.sort(function (a, b) { return a.location.localeCompare(b.location); });
@@ -1732,15 +1765,16 @@
       orderedMice.sort(function (a, b) {
         var aRows = computeRows([a]);
         var bRows = computeRows([b]);
-        var aTop = aRows.length ? aRows[0].weightedSum : -1;
-        var bTop = bRows.length ? bRows[0].weightedSum : -1;
+        var aTop = aRows.length ? (bestRowOf(aRows) || aRows[0]).weightedSum : -1;
+        var bTop = bRows.length ? (bestRowOf(bRows) || bRows[0]).weightedSum : -1;
         return bTop - aTop;
       });
     } // "input" keeps selectedMice's own order
     var html = orderedMice.map(function (mouse) {
       var rows = computeRows([mouse]);
       var isExpanded = !!expandedMice[mouse];
-      var limited = (bestOnly && !isExpanded) ? rows.slice(0, 1) : rows;
+      var bestRow = bestRowOf(rows);
+      var limited = (bestOnly && !isExpanded) ? (bestRow ? [bestRow] : rows.slice(0, 1)) : rows;
       var g = groupLabelFor(mouse);
       var groupLabel = g
         ? (g.subgroup ? escapeHtml(g.group) + " » " + escapeHtml(g.subgroup) : escapeHtml(g.group))
@@ -1763,7 +1797,7 @@
             '<span class="collapsed-count">' + limited.length + (limited.length === 1 ? " result" : " results") + "</span>" +
           "</div>" +
           '<div class="result-list">' +
-            limited.map(function (row, i) { return renderRowCard(row, i + 1, false, i === 0); }).join("") +
+            limited.map(function (row, i) { return renderRowCard(row, i + 1, false, row === bestRow); }).join("") +
           "</div>" +
           toggleOptionsHtml +
         "</div>"
